@@ -1,12 +1,22 @@
-import type { FinancialProfile } from "../../domain/types";
-import { buildRecommendations } from "../../domain/calculations";
+import type { Account, FinancialProfile, SavingsTracker } from "../../domain/types";
+import { balanceByAccount, buildRecommendations, currentEmergencyFundBalance } from "../../domain/calculations";
 import { Card } from "../../components/Card";
 import { SeverityBadge } from "../../components/StatusBadge";
 
 const severityRank = { alta: 0, media: 1, baja: 2 } as const;
 
-export function RecomendacionesScreen({ profile }: { profile: FinancialProfile }) {
-  const recommendations = [...buildRecommendations(profile)].sort(
+export function RecomendacionesScreen({
+  profile,
+  accounts,
+  trackers,
+}: {
+  profile: FinancialProfile;
+  accounts: Account[];
+  trackers: SavingsTracker[];
+}) {
+  const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
+  const efBalance = currentEmergencyFundBalance(trackers, accountBalances);
+  const recommendations = [...buildRecommendations(profile, efBalance)].sort(
     (a, b) => severityRank[a.severity] - severityRank[b.severity],
   );
 

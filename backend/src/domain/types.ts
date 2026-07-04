@@ -47,3 +47,17 @@ export interface Transfer {
 }
 
 export type NewTransfer = Omit<Transfer, "id">;
+
+export type TrackerKind = "emergency_fund" | "investment";
+
+export interface SavingsTracker {
+  id: string;
+  kind: TrackerKind;
+  name: string;
+  account: string;
+  initialBalance: number;
+  /** Mes al que corresponde initialBalance, formato "YYYY-MM". */
+  initialBalanceAsOf: string;
+}
+
+export type NewSavingsTracker = Omit<SavingsTracker, "id">;

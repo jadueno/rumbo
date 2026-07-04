@@ -8,11 +8,13 @@ import { createIncomeRepository } from "../db/repositories/incomeRepository.js";
 import { createExpenseRepository } from "../db/repositories/expenseRepository.js";
 import { createDebtRepository } from "../db/repositories/debtRepository.js";
 import { createTransferRepository } from "../db/repositories/transferRepository.js";
+import { createSavingsTrackerRepository } from "../db/repositories/savingsTrackerRepository.js";
 import { createAccountUseCases } from "../../application/accounts.js";
 import { createIncomeUseCases } from "../../application/incomes.js";
 import { createExpenseUseCases } from "../../application/expenses.js";
 import { createDebtUseCases } from "../../application/debts.js";
 import { createTransferUseCases } from "../../application/transfers.js";
+import { createSavingsTrackerUseCases } from "../../application/savingsTrackers.js";
 
 export async function buildServer(pool: Pool) {
   const app = Fastify({ logger: true });
@@ -25,6 +27,11 @@ export async function buildServer(pool: Pool) {
   registerCrudRoutes(app, "/expenses", createExpenseUseCases(createExpenseRepository(pool)));
   registerCrudRoutes(app, "/debts", createDebtUseCases(createDebtRepository(pool)));
   registerCrudRoutes(app, "/transfers", createTransferUseCases(createTransferRepository(pool)));
+  registerCrudRoutes(
+    app,
+    "/savings-trackers",
+    createSavingsTrackerUseCases(createSavingsTrackerRepository(pool)),
+  );
 
   return app;
 }

@@ -1,7 +1,10 @@
-import type { FinancialProfile } from "../../domain/types";
+import type { Account, FinancialProfile, SavingsTracker } from "../../domain/types";
 import {
+  balanceByAccount,
   buildRecommendations,
+  currentEmergencyFundBalance,
   deliberateSavingsAndInvestment,
+  emergencyFundProgress,
   emergencyFundTarget,
   formatEUR,
   netMonthlyCashflow,
@@ -13,17 +16,25 @@ import { Card } from "../../components/Card";
 import { BarComparison } from "../../components/BarComparison";
 import { ProgressBar } from "../../components/ProgressBar";
 import { SeverityBadge } from "../../components/StatusBadge";
-import { useEmergencyFundBalance } from "../ahorro/useEmergencyFundBalance";
 
-export function ResumenScreen({ profile }: { profile: FinancialProfile }) {
+export function ResumenScreen({
+  profile,
+  accounts,
+  trackers,
+}: {
+  profile: FinancialProfile;
+  accounts: Account[];
+  trackers: SavingsTracker[];
+}) {
   const income = totalMonthlyIncome(profile);
   const expenses = totalMonthlyExpenses(profile);
   const savings = deliberateSavingsAndInvestment(profile);
   const net = netMonthlyCashflow(profile);
   const efTarget = emergencyFundTarget(profile);
-  const [efBalance] = useEmergencyFundBalance(profile.emergencyFund.currentBalance);
-  const efProgress = efTarget > 0 ? Math.min(1, efBalance / efTarget) : 1;
-  const topRecommendations = buildRecommendations(profile)
+  const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
+  const efBalance = currentEmergencyFundBalance(trackers, accountBalances);
+  const efProgress = emergencyFundProgress(profile, efBalance);
+  const topRecommendations = buildRecommendations(profile, efBalance)
     .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
     .slice(0, 3);
 

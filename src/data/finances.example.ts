@@ -12,6 +12,5 @@ export const staticProfile: { age: number; accountFlows: AccountFlow[]; emergenc
   ],
   emergencyFund: {
     targetMonths: 3,
-    currentBalance: 500,
   },
 };

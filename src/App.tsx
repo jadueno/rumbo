@@ -71,7 +71,9 @@ export default function App() {
           )}
           {data.profile && (
             <>
-              {section === "resumen" && <ResumenScreen profile={data.profile} />}
+              {section === "resumen" && (
+                <ResumenScreen profile={data.profile} accounts={data.accounts} trackers={data.trackers} />
+              )}
               {section === "gastos" && (
                 <GastosScreen
                   profile={data.profile}
@@ -90,8 +92,18 @@ export default function App() {
               {section === "deudas" && (
                 <DeudasScreen profile={data.profile} onAddDebt={data.addDebt} onRemoveDebt={data.removeDebt} />
               )}
-              {section === "ahorro" && <AhorroScreen profile={data.profile} />}
-              {section === "recomendaciones" && <RecomendacionesScreen profile={data.profile} />}
+              {section === "ahorro" && (
+                <AhorroScreen
+                  profile={data.profile}
+                  accounts={data.accounts}
+                  trackers={data.trackers}
+                  onAddTracker={data.addTracker}
+                  onRemoveTracker={data.removeTracker}
+                />
+              )}
+              {section === "recomendaciones" && (
+                <RecomendacionesScreen profile={data.profile} accounts={data.accounts} trackers={data.trackers} />
+              )}
             </>
           )}
         </div>

@@ -6,7 +6,9 @@ import type {
   NewDebt,
   NewExpenseItem,
   NewIncomeSource,
+  NewSavingsTracker,
   NewTransfer,
+  SavingsTracker,
 } from "../domain/types";
 import { staticProfile } from "./finances";
 import { createCrudClient } from "./api";
@@ -26,10 +28,12 @@ const incomeClient = createCrudClient<ApiIncome, NewIncomeSource>("/incomes");
 const expenseClient = createCrudClient<ApiExpense, ReturnType<typeof toApiExpense>>("/expenses");
 const debtClient = createCrudClient<ApiDebt, ReturnType<typeof toApiDebt>>("/debts");
 const transferClient = createCrudClient<ApiTransfer, NewTransfer>("/transfers");
+const trackerClient = createCrudClient<SavingsTracker, NewSavingsTracker>("/savings-trackers");
 
 export function useFinancialData() {
   const [profile, setProfile] = useState<FinancialProfile | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [trackers, setTrackers] = useState<SavingsTracker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,14 +41,16 @@ export function useFinancialData() {
     setLoading(true);
     setError(null);
     try {
-      const [accountList, incomes, apiExpenses, apiDebts, transfers] = await Promise.all([
+      const [accountList, incomes, apiExpenses, apiDebts, transfers, trackerList] = await Promise.all([
         accountClient.list(),
         incomeClient.list(),
         expenseClient.list(),
         debtClient.list(),
         transferClient.list(),
+        trackerClient.list(),
       ]);
       setAccounts(accountList);
+      setTrackers(trackerList);
       setProfile({
         ...staticProfile,
         incomes,
@@ -66,6 +72,7 @@ export function useFinancialData() {
   return {
     profile,
     accounts,
+    trackers,
     loading,
     error,
     addAccount: async (entity: NewAccount) => {
@@ -110,6 +117,14 @@ export function useFinancialData() {
     },
     removeTransfer: async (id: string) => {
       await transferClient.remove(id);
+      await reload();
+    },
+    addTracker: async (entity: NewSavingsTracker) => {
+      await trackerClient.create(entity);
+      await reload();
+    },
+    removeTracker: async (id: string) => {
+      await trackerClient.remove(id);
       await reload();
     },
   };

@@ -1,4 +1,4 @@
-import type { Debt, FinancialProfile } from "./types";
+import type { Debt, FinancialProfile, SavingsTracker } from "./types";
 
 export function totalMonthlyIncome(profile: FinancialProfile): number {
   return sum(profile.incomes.map((i) => i.monthlyAmount));
@@ -105,10 +105,8 @@ export function estimatedRemainingBalance(debt: Debt, today: Date = new Date()):
   if (debt.remainingBalance === undefined || !debt.balanceAsOf) {
     return debt.remainingBalance;
   }
-  const [asOfYear, asOfMonth] = debt.balanceAsOf.split("-").map(Number);
-  const monthsElapsed =
-    (today.getFullYear() - asOfYear) * 12 + (today.getMonth() + 1 - asOfMonth);
-  return Math.max(0, debt.remainingBalance - Math.max(0, monthsElapsed) * debt.monthlyPayment);
+  const monthsElapsed = monthsElapsedSince(debt.balanceAsOf, today);
+  return Math.max(0, debt.remainingBalance - monthsElapsed * debt.monthlyPayment);
 }
 
 export function totalEstimatedRemainingDebt(profile: FinancialProfile, today: Date = new Date()): number {
@@ -129,10 +127,60 @@ export function emergencyFundTarget(profile: FinancialProfile): number {
   return profile.emergencyFund.targetMonths * totalMonthlyExpenses(profile);
 }
 
-export function emergencyFundProgress(profile: FinancialProfile): number {
+export function emergencyFundProgress(profile: FinancialProfile, currentBalance: number): number {
   const target = emergencyFundTarget(profile);
   if (target === 0) return 1;
-  return Math.min(1, profile.emergencyFund.currentBalance / target);
+  return Math.min(1, currentBalance / target);
+}
+
+/**
+ * Meses transcurridos entre un mes "YYYY-MM" y hoy, nunca negativo.
+ */
+export function monthsElapsedSince(yyyyMM: string, today: Date = new Date()): number {
+  const [year, month] = yyyyMM.split("-").map(Number);
+  return Math.max(0, (today.getFullYear() - year) * 12 + (today.getMonth() + 1 - month));
+}
+
+export function formatMonth(yyyyMM: string): string {
+  const [year, month] = yyyyMM.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+}
+
+/**
+ * Saldo estimado de un seguimiento de ahorro/inversión: parte del saldo
+ * inicial conocido y suma, por cada mes transcurrido desde entonces, el
+ * balance neto mensual actual de la cuenta a la que está vinculado
+ * (ingresos + transferencias entrantes − gastos − transferencias salientes).
+ * Es una aproximación: asume que ese balance mensual se ha mantenido
+ * constante desde `initialBalanceAsOf`.
+ */
+export function estimatedTrackerBalance(
+  tracker: SavingsTracker,
+  accountBalances: AccountBalance[],
+  today: Date = new Date(),
+): number {
+  const monthlyRate = accountBalances.find((a) => a.account === tracker.account)?.balance ?? 0;
+  const monthsElapsed = monthsElapsedSince(tracker.initialBalanceAsOf, today);
+  return Math.max(0, tracker.initialBalance + monthlyRate * monthsElapsed);
+}
+
+export function emergencyFundTracker(trackers: SavingsTracker[]): SavingsTracker | undefined {
+  return trackers.find((t) => t.kind === "emergency_fund");
+}
+
+export function investmentTrackers(trackers: SavingsTracker[]): SavingsTracker[] {
+  return trackers.filter((t) => t.kind === "investment");
+}
+
+/** Saldo actual del fondo de emergencia, o 0 si todavía no se ha configurado. */
+export function currentEmergencyFundBalance(
+  trackers: SavingsTracker[],
+  accountBalances: AccountBalance[],
+  today: Date = new Date(),
+): number {
+  const tracker = emergencyFundTracker(trackers);
+  if (!tracker) return 0;
+  return estimatedTrackerBalance(tracker, accountBalances, today);
 }
 
 export interface Recommendation {
@@ -141,12 +189,12 @@ export interface Recommendation {
   detail: string;
 }
 
-export function buildRecommendations(profile: FinancialProfile): Recommendation[] {
+export function buildRecommendations(profile: FinancialProfile, emergencyFundBalance: number): Recommendation[] {
   const recs: Recommendation[] = [];
   const idle = idleSurplus(profile);
   const income = totalMonthlyIncome(profile);
   const rate = savingsRate(profile);
-  const efProgress = emergencyFundProgress(profile);
+  const efProgress = emergencyFundProgress(profile, emergencyFundBalance);
 
   if (idle > income * 0.2) {
     recs.push({

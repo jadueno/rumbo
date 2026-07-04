@@ -3,6 +3,7 @@ import type { FinancialProfile, NewDebt } from "../../domain/types";
 import {
   estimatedRemainingBalance,
   formatEUR,
+  formatMonth,
   totalEstimatedRemainingDebt,
   totalMonthlyDebtPayments,
   totalMonthlyIncome,
@@ -134,9 +135,4 @@ export function DeudasScreen({
       )}
     </div>
   );
-}
-
-function formatMonth(yyyyMM: string): string {
-  const [year, month] = yyyyMM.split("-").map(Number);
-  return new Date(year, month - 1, 1).toLocaleDateString("es-ES", { month: "long", year: "numeric" });
 }

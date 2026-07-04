@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { pool } from "./pool.js";
-import type { NewAccount, NewDebt, NewExpense, NewIncome, NewTransfer } from "../../domain/types.js";
+import type { NewAccount, NewDebt, NewExpense, NewIncome, NewSavingsTracker, NewTransfer } from "../../domain/types.js";
 
 /**
  * Plantilla de ejemplo. Copia este archivo a `seed.ts` (ignorado por git)
@@ -25,8 +25,18 @@ const transfers: NewTransfer[] = [
   { fromAccount: "Cuenta Nómina", toAccount: "Cuenta Ahorro", monthlyAmount: 200, isSavingsOrInvestment: true },
 ];
 
+const savingsTrackers: NewSavingsTracker[] = [
+  {
+    kind: "emergency_fund",
+    name: "Fondo de emergencia",
+    account: "Cuenta Ahorro",
+    initialBalance: 500,
+    initialBalanceAsOf: "2026-01",
+  },
+];
+
 async function seed() {
-  await pool.query("truncate accounts, incomes, expenses, debts, transfers");
+  await pool.query("truncate accounts, incomes, expenses, debts, transfers, savings_trackers");
 
   for (const a of accounts) {
     await pool.query("insert into accounts (name) values ($1)", [a.name]);
@@ -58,6 +68,13 @@ async function seed() {
     await pool.query(
       "insert into transfers (from_account, to_account, monthly_amount, is_savings_or_investment) values ($1, $2, $3, $4)",
       [t.fromAccount, t.toAccount, t.monthlyAmount, t.isSavingsOrInvestment],
+    );
+  }
+
+  for (const s of savingsTrackers) {
+    await pool.query(
+      "insert into savings_trackers (kind, name, account, initial_balance, initial_balance_as_of) values ($1, $2, $3, $4, $5)",
+      [s.kind, s.name, s.account, s.initialBalance, s.initialBalanceAsOf],
     );
   }
 
