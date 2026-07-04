@@ -29,9 +29,9 @@ export function AhorroScreen({ profile, accounts, trackers, onAddTracker, onRemo
   const confirm = useConfirm();
   const [showAddInvestment, setShowAddInvestment] = useState(false);
 
-  const rate = savingsRate(profile);
   const accountNames = accounts.map((a) => a.name);
   const accountBalances = balanceByAccount(profile, accountNames);
+  const rate = savingsRate(profile, accountBalances, trackers);
 
   const efTarget = emergencyFundTarget(profile);
   const efTrackerEntity = emergencyFundTracker(trackers);

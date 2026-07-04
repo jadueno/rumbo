@@ -28,13 +28,13 @@ export function ResumenScreen({
 }) {
   const income = totalMonthlyIncome(profile);
   const expenses = totalMonthlyExpenses(profile);
-  const savings = deliberateSavingsAndInvestment(profile);
+  const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
+  const savings = deliberateSavingsAndInvestment(accountBalances, trackers);
   const net = netMonthlyCashflow(profile);
   const efTarget = emergencyFundTarget(profile);
-  const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
   const efBalance = currentEmergencyFundBalance(trackers, accountBalances);
   const efProgress = emergencyFundProgress(profile, efBalance);
-  const topRecommendations = buildRecommendations(profile, efBalance)
+  const topRecommendations = buildRecommendations(profile, efBalance, accountBalances, trackers)
     .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
     .slice(0, 3);
 

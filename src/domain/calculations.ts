@@ -60,36 +60,41 @@ export function netMonthlyCashflow(profile: FinancialProfile): number {
   return totalMonthlyIncome(profile) - totalMonthlyExpenses(profile);
 }
 
-/** Dinero que va deliberadamente a ahorro o inversión: cuentas de ahorro y transferencias a productos de inversión/pensión */
+function trackedAccountNames(trackers: SavingsTracker[]): Set<string> {
+  return new Set(trackers.map((t) => t.account));
+}
+
+/**
+ * Dinero que va deliberadamente a ahorro o inversión: el balance neto mensual
+ * (ingresos + transferencias entrantes − gastos − transferencias salientes)
+ * de cada cuenta que tiene un seguimiento real (fondo de emergencia o alguna
+ * inversión) vinculado. Si dos seguimientos comparten cuenta, esa cuenta solo
+ * cuenta una vez.
+ */
 export function deliberateSavingsAndInvestment(
-  profile: FinancialProfile,
+  accountBalances: AccountBalance[],
+  trackers: SavingsTracker[],
 ): number {
-  const fromSavingsAccounts = sum(
-    profile.accountFlows
-      .filter((f) => savingsAccountNames.has(f.account))
-      .map((f) => f.entra + f.sale),
-  );
-  const fromInvestmentTransfers = sum(
-    profile.transfers
-      .filter((t) => t.isSavingsOrInvestment && !isAccountName(profile, t.toAccount))
-      .map((t) => t.monthlyAmount),
-  );
-  return fromSavingsAccounts + fromInvestmentTransfers;
+  const tracked = trackedAccountNames(trackers);
+  return sum(accountBalances.filter((a) => tracked.has(a.account)).map((a) => a.balance));
 }
 
-/** Dinero que se acumula en cuentas corrientes sin destino definido (ni gasto ni inversión) */
-export function idleSurplus(profile: FinancialProfile): number {
+/** Dinero que se acumula en cuentas sin un seguimiento de ahorro/inversión vinculado (ni gasto asignado). */
+export function idleSurplus(accountBalances: AccountBalance[], trackers: SavingsTracker[]): number {
+  const tracked = trackedAccountNames(trackers);
   return sum(
-    profile.accountFlows
-      .filter((f) => !savingsAccountNames.has(f.account))
-      .map((f) => Math.max(0, f.entra + f.sale)),
+    accountBalances.filter((a) => !tracked.has(a.account)).map((a) => Math.max(0, a.balance)),
   );
 }
 
-export function savingsRate(profile: FinancialProfile): number {
+export function savingsRate(
+  profile: FinancialProfile,
+  accountBalances: AccountBalance[],
+  trackers: SavingsTracker[],
+): number {
   const income = totalMonthlyIncome(profile);
   if (income === 0) return 0;
-  return deliberateSavingsAndInvestment(profile) / income;
+  return deliberateSavingsAndInvestment(accountBalances, trackers) / income;
 }
 
 export function totalMonthlyDebtPayments(profile: FinancialProfile): number {
@@ -189,11 +194,16 @@ export interface Recommendation {
   detail: string;
 }
 
-export function buildRecommendations(profile: FinancialProfile, emergencyFundBalance: number): Recommendation[] {
+export function buildRecommendations(
+  profile: FinancialProfile,
+  emergencyFundBalance: number,
+  accountBalances: AccountBalance[],
+  trackers: SavingsTracker[],
+): Recommendation[] {
   const recs: Recommendation[] = [];
-  const idle = idleSurplus(profile);
+  const idle = idleSurplus(accountBalances, trackers);
   const income = totalMonthlyIncome(profile);
-  const rate = savingsRate(profile);
+  const rate = savingsRate(profile, accountBalances, trackers);
   const efProgress = emergencyFundProgress(profile, emergencyFundBalance);
 
   if (idle > income * 0.2) {
@@ -244,12 +254,6 @@ export function buildRecommendations(profile: FinancialProfile, emergencyFundBal
   }
 
   return recs;
-}
-
-const savingsAccountNames = new Set(["ING - Ahorro"]);
-
-function isAccountName(profile: FinancialProfile, name: string): boolean {
-  return profile.accountFlows.some((f) => f.account === name);
 }
 
 function sum(values: number[]): number {

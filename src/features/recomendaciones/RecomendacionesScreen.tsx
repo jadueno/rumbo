@@ -16,7 +16,7 @@ export function RecomendacionesScreen({
 }) {
   const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
   const efBalance = currentEmergencyFundBalance(trackers, accountBalances);
-  const recommendations = [...buildRecommendations(profile, efBalance)].sort(
+  const recommendations = [...buildRecommendations(profile, efBalance, accountBalances, trackers)].sort(
     (a, b) => severityRank[a.severity] - severityRank[b.severity],
   );
 
