@@ -54,7 +54,7 @@ export function AddDebtForm({ onSubmit }: { onSubmit: (debt: NewDebt) => Promise
           <Field label="Hasta (MM/YYYY)">
             <input
               required
-              placeholder="06/2030"
+              placeholder="MM/AAAA"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-sm text-[var(--text-primary)]"
