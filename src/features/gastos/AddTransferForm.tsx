@@ -23,7 +23,7 @@ export function AddTransferForm({
         e.preventDefault();
         setSubmitting(true);
         try {
-          await onSubmit({ fromAccount, toAccount, monthlyAmount: Number(monthlyAmount), isSavingsOrInvestment: false });
+          await onSubmit({ fromAccount, toAccount, monthlyAmount: Number(monthlyAmount) });
           onCancel();
         } finally {
           setSubmitting(false);

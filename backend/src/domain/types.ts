@@ -43,7 +43,6 @@ export interface Transfer {
   fromAccount: string;
   toAccount: string;
   monthlyAmount: number;
-  isSavingsOrInvestment: boolean;
 }
 
 export type NewTransfer = Omit<Transfer, "id">;

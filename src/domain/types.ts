@@ -32,8 +32,6 @@ export interface Transfer {
   fromAccount: string;
   toAccount: string;
   monthlyAmount: number;
-  /** true si el destino es ahorro o inversión real, no solo mover dinero para gastar */
-  isSavingsOrInvestment: boolean;
 }
 
 export type NewTransfer = Omit<Transfer, "id">;

@@ -22,7 +22,7 @@ const debts: NewDebt[] = [
 ];
 
 const transfers: NewTransfer[] = [
-  { fromAccount: "Cuenta Nómina", toAccount: "Cuenta Ahorro", monthlyAmount: 200, isSavingsOrInvestment: true },
+  { fromAccount: "Cuenta Nómina", toAccount: "Cuenta Ahorro", monthlyAmount: 200 },
 ];
 
 const savingsTrackers: NewSavingsTracker[] = [
@@ -66,8 +66,8 @@ async function seed() {
 
   for (const t of transfers) {
     await pool.query(
-      "insert into transfers (from_account, to_account, monthly_amount, is_savings_or_investment) values ($1, $2, $3, $4)",
-      [t.fromAccount, t.toAccount, t.monthlyAmount, t.isSavingsOrInvestment],
+      "insert into transfers (from_account, to_account, monthly_amount) values ($1, $2, $3)",
+      [t.fromAccount, t.toAccount, t.monthlyAmount],
     );
   }
 
