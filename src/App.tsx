@@ -75,6 +75,9 @@ export default function App() {
               {section === "gastos" && (
                 <GastosScreen
                   profile={data.profile}
+                  accounts={data.accounts}
+                  onAddAccount={data.addAccount}
+                  onRemoveAccount={data.removeAccount}
                   onAddIncome={data.addIncome}
                   onUpdateIncome={data.updateIncome}
                   onRemoveIncome={data.removeIncome}

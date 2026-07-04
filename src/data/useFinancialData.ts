@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import type { FinancialProfile, NewDebt, NewExpenseItem, NewIncomeSource, NewTransfer } from "../domain/types";
+import type {
+  Account,
+  FinancialProfile,
+  NewAccount,
+  NewDebt,
+  NewExpenseItem,
+  NewIncomeSource,
+  NewTransfer,
+} from "../domain/types";
 import { staticProfile } from "./finances";
 import { createCrudClient } from "./api";
 import {
@@ -13,6 +21,7 @@ import {
   type ApiTransfer,
 } from "./apiMappers";
 
+const accountClient = createCrudClient<Account, NewAccount>("/accounts");
 const incomeClient = createCrudClient<ApiIncome, NewIncomeSource>("/incomes");
 const expenseClient = createCrudClient<ApiExpense, ReturnType<typeof toApiExpense>>("/expenses");
 const debtClient = createCrudClient<ApiDebt, ReturnType<typeof toApiDebt>>("/debts");
@@ -20,6 +29,7 @@ const transferClient = createCrudClient<ApiTransfer, NewTransfer>("/transfers");
 
 export function useFinancialData() {
   const [profile, setProfile] = useState<FinancialProfile | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,12 +37,14 @@ export function useFinancialData() {
     setLoading(true);
     setError(null);
     try {
-      const [incomes, apiExpenses, apiDebts, transfers] = await Promise.all([
+      const [accountList, incomes, apiExpenses, apiDebts, transfers] = await Promise.all([
+        accountClient.list(),
         incomeClient.list(),
         expenseClient.list(),
         debtClient.list(),
         transferClient.list(),
       ]);
+      setAccounts(accountList);
       setProfile({
         ...staticProfile,
         incomes,
@@ -53,8 +65,17 @@ export function useFinancialData() {
 
   return {
     profile,
+    accounts,
     loading,
     error,
+    addAccount: async (entity: NewAccount) => {
+      await accountClient.create(entity);
+      await reload();
+    },
+    removeAccount: async (id: string) => {
+      await accountClient.remove(id);
+      await reload();
+    },
     addIncome: async (entity: NewIncomeSource) => {
       await incomeClient.create(entity);
       await reload();

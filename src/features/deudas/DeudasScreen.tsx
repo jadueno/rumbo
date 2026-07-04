@@ -8,6 +8,7 @@ import {
   totalMonthlyIncome,
 } from "../../domain/calculations";
 import { Card } from "../../components/Card";
+import { useConfirm } from "../../components/ConfirmProvider";
 import { AddDebtForm } from "./AddDebtForm";
 
 export function DeudasScreen({
@@ -19,7 +20,14 @@ export function DeudasScreen({
   onAddDebt: (debt: NewDebt) => Promise<void>;
   onRemoveDebt: (id: string) => Promise<void>;
 }) {
+  const confirm = useConfirm();
   const [showForm, setShowForm] = useState(false);
+
+  async function handleRemove(name: string, id: string) {
+    if (await confirm(`¿Eliminar la deuda "${name}"? Esta acción no se puede deshacer.`)) {
+      await onRemoveDebt(id);
+    }
+  }
   const totalPayments = totalMonthlyDebtPayments(profile);
   const income = totalMonthlyIncome(profile);
   const debtLoad = income > 0 ? totalPayments / income : 0;
@@ -90,7 +98,7 @@ export function DeudasScreen({
                     <h2 className="font-semibold text-[var(--text-primary)]">{debt.name}</h2>
                     <button
                       type="button"
-                      onClick={() => onRemoveDebt(debt.id)}
+                      onClick={() => handleRemove(debt.name, debt.id)}
                       aria-label={`Eliminar deuda ${debt.name}`}
                       className="text-xs text-[var(--text-muted)] hover:text-[var(--status-critical)]"
                     >

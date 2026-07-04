@@ -3,15 +3,15 @@ import type { NewIncomeSource } from "../../domain/types";
 import { Field } from "../../components/Field";
 
 export function AddIncomeForm({
-  knownAccounts,
+  accountNames,
   onSubmit,
   onCancel,
 }: {
-  knownAccounts: string[];
+  accountNames: string[];
   onSubmit: (income: NewIncomeSource) => Promise<void>;
   onCancel: () => void;
 }) {
-  const [account, setAccount] = useState("");
+  const [account, setAccount] = useState(accountNames[0] ?? "");
   const [label, setLabel] = useState("");
   const [monthlyAmount, setMonthlyAmount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -32,13 +32,21 @@ export function AddIncomeForm({
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Cuenta">
-          <input
+          <select
             required
-            list="known-accounts"
             value={account}
             onChange={(e) => setAccount(e.target.value)}
             className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-sm text-[var(--text-primary)]"
-          />
+          >
+            <option value="" disabled>
+              Elige una cuenta
+            </option>
+            {accountNames.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="Concepto">
           <input
@@ -60,15 +68,10 @@ export function AddIncomeForm({
           />
         </Field>
       </div>
-      <datalist id="known-accounts">
-        {knownAccounts.map((a) => (
-          <option key={a} value={a} />
-        ))}
-      </datalist>
       <div className="flex gap-2">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || accountNames.length === 0}
           className="rounded-lg px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
           style={{ backgroundColor: "var(--series-income)" }}
         >
@@ -78,6 +81,11 @@ export function AddIncomeForm({
           Cancelar
         </button>
       </div>
+      {accountNames.length === 0 && (
+        <p className="text-xs" style={{ color: "var(--status-critical)" }}>
+          Primero crea una cuenta.
+        </p>
+      )}
     </form>
   );
 }

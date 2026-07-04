@@ -1,11 +1,13 @@
 import "dotenv/config";
 import { pool } from "./pool.js";
-import type { NewDebt, NewExpense, NewIncome, NewTransfer } from "../../domain/types.js";
+import type { NewAccount, NewDebt, NewExpense, NewIncome, NewTransfer } from "../../domain/types.js";
 
 /**
  * Plantilla de ejemplo. Copia este archivo a `seed.ts` (ignorado por git)
  * y sustituye los valores por tus datos reales.
  */
+const accounts: NewAccount[] = [{ name: "Cuenta Nómina" }, { name: "Cuenta Ahorro" }];
+
 const incomes: NewIncome[] = [
   { account: "Cuenta Nómina", label: "Sueldo Neto mensual", monthlyAmount: 2000 },
 ];
@@ -24,7 +26,11 @@ const transfers: NewTransfer[] = [
 ];
 
 async function seed() {
-  await pool.query("truncate incomes, expenses, debts, transfers");
+  await pool.query("truncate accounts, incomes, expenses, debts, transfers");
+
+  for (const a of accounts) {
+    await pool.query("insert into accounts (name) values ($1)", [a.name]);
+  }
 
   for (const i of incomes) {
     await pool.query("insert into incomes (account, label, monthly_amount) values ($1, $2, $3)", [

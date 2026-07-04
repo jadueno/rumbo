@@ -1,3 +1,10 @@
+export interface Account {
+  id: string;
+  name: string;
+}
+
+export type NewAccount = Omit<Account, "id">;
+
 export interface IncomeSource {
   id: string;
   account: string;

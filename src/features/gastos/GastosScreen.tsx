@@ -1,13 +1,18 @@
 import { useState } from "react";
-import type { FinancialProfile, NewExpenseItem, NewIncomeSource, NewTransfer } from "../../domain/types";
+import type { Account, FinancialProfile, NewAccount, NewExpenseItem, NewIncomeSource, NewTransfer } from "../../domain/types";
 import { balanceByAccount, formatEUR, totalMonthlyExpenses, totalMonthlyIncome } from "../../domain/calculations";
 import { Card } from "../../components/Card";
+import { useConfirm } from "../../components/ConfirmProvider";
 import { AddIncomeForm } from "./AddIncomeForm";
 import { AddExpenseForm } from "./AddExpenseForm";
 import { AddTransferForm } from "./AddTransferForm";
+import { AddAccountForm } from "./AddAccountForm";
 
 interface Props {
   profile: FinancialProfile;
+  accounts: Account[];
+  onAddAccount: (account: NewAccount) => Promise<void>;
+  onRemoveAccount: (id: string) => Promise<void>;
   onAddIncome: (income: NewIncomeSource) => Promise<void>;
   onUpdateIncome: (id: string, income: NewIncomeSource) => Promise<void>;
   onRemoveIncome: (id: string) => Promise<void>;
@@ -19,6 +24,9 @@ interface Props {
 
 export function GastosScreen({
   profile,
+  accounts,
+  onAddAccount,
+  onRemoveAccount,
   onAddIncome,
   onUpdateIncome,
   onRemoveIncome,
@@ -27,11 +35,41 @@ export function GastosScreen({
   onAddTransfer,
   onRemoveTransfer,
 }: Props) {
-  const [openForm, setOpenForm] = useState<"income" | "expense" | "transfer" | null>(null);
+  const confirm = useConfirm();
+  const [openForm, setOpenForm] = useState<"income" | "expense" | "transfer" | "account" | null>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
   const totalIncome = totalMonthlyIncome(profile);
   const totalExpenses = totalMonthlyExpenses(profile);
-  const accountBalances = balanceByAccount(profile);
-  const knownAccounts = accountBalances.map((a) => a.account);
+  const accountNames = accounts.map((a) => a.name);
+  const accountBalances = balanceByAccount(profile, accountNames);
+
+  async function handleRemoveIncome(label: string, id: string) {
+    if (await confirm(`¿Eliminar el ingreso "${label}"? Esta acción no se puede deshacer.`)) {
+      await onRemoveIncome(id);
+    }
+  }
+
+  async function handleRemoveExpense(label: string, id: string) {
+    if (await confirm(`¿Eliminar el gasto "${label}"? Esta acción no se puede deshacer.`)) {
+      await onRemoveExpense(id);
+    }
+  }
+
+  async function handleRemoveTransfer(id: string) {
+    if (await confirm("¿Eliminar esta transferencia? Esta acción no se puede deshacer.")) {
+      await onRemoveTransfer(id);
+    }
+  }
+
+  async function handleRemoveAccount(account: Account) {
+    if (!(await confirm(`¿Eliminar la cuenta "${account.name}"? Esta acción no se puede deshacer.`))) return;
+    setAccountError(null);
+    try {
+      await onRemoveAccount(account.id);
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : "No se ha podido eliminar la cuenta");
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,7 +119,7 @@ export function GastosScreen({
                 <span className="text-sm text-[var(--text-muted)]">€</span>
                 <button
                   type="button"
-                  onClick={() => onRemoveIncome(income.id)}
+                  onClick={() => handleRemoveIncome(income.label, income.id)}
                   aria-label={`Eliminar ingreso ${income.label}`}
                   className="ml-1 text-xs text-[var(--text-muted)] hover:text-[var(--status-critical)]"
                 >
@@ -93,7 +131,7 @@ export function GastosScreen({
         </ul>
 
         {openForm === "income" ? (
-          <AddIncomeForm knownAccounts={knownAccounts} onSubmit={onAddIncome} onCancel={() => setOpenForm(null)} />
+          <AddIncomeForm accountNames={accountNames} onSubmit={onAddIncome} onCancel={() => setOpenForm(null)} />
         ) : (
           <button
             type="button"
@@ -110,6 +148,14 @@ export function GastosScreen({
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Por cuenta bancaria</h2>
           <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setOpenForm(openForm === "account" ? null : "account")}
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-white"
+              style={{ backgroundColor: "var(--series-savings)" }}
+            >
+              + Añadir cuenta
+            </button>
             <button
               type="button"
               onClick={() => setOpenForm(openForm === "expense" ? null : "expense")}
@@ -129,15 +175,25 @@ export function GastosScreen({
           </div>
         </div>
 
+        {openForm === "account" && (
+          <Card className="mb-4">
+            <AddAccountForm onSubmit={onAddAccount} onCancel={() => setOpenForm(null)} />
+          </Card>
+        )}
         {openForm === "expense" && (
           <Card className="mb-4">
-            <AddExpenseForm knownAccounts={knownAccounts} onSubmit={onAddExpense} onCancel={() => setOpenForm(null)} />
+            <AddExpenseForm accountNames={accountNames} onSubmit={onAddExpense} onCancel={() => setOpenForm(null)} />
           </Card>
         )}
         {openForm === "transfer" && (
           <Card className="mb-4">
-            <AddTransferForm knownAccounts={knownAccounts} onSubmit={onAddTransfer} onCancel={() => setOpenForm(null)} />
+            <AddTransferForm accountNames={accountNames} onSubmit={onAddTransfer} onCancel={() => setOpenForm(null)} />
           </Card>
+        )}
+        {accountError && (
+          <p className="mb-4 text-sm" style={{ color: "var(--status-critical)" }}>
+            {accountError}
+          </p>
         )}
 
         <div className="flex flex-col gap-4">
@@ -146,21 +202,25 @@ export function GastosScreen({
             const incomeItems = profile.incomes.filter((i) => i.account === account);
             const transfersOut = profile.transfers.filter((t) => t.fromAccount === account);
             const transfersIn = profile.transfers.filter((t) => t.toAccount === account);
-            if (
-              items.length === 0 &&
-              incomeItems.length === 0 &&
-              transfersOut.length === 0 &&
-              transfersIn.length === 0
-            ) {
-              return null;
-            }
+            const accountEntity = accounts.find((a) => a.name === account);
 
             const balanceColor = balance >= 0 ? "var(--series-savings)" : "var(--series-expense)";
 
             return (
               <Card key={account}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h3 className="font-semibold text-[var(--text-primary)]">{account}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-[var(--text-primary)]">{account}</h3>
+                    {accountEntity && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAccount(accountEntity)}
+                        className="text-xs text-[var(--text-muted)] hover:text-[var(--status-critical)]"
+                      >
+                        Eliminar cuenta
+                      </button>
+                    )}
+                  </div>
                   <p className="text-xl font-bold tabular-nums" style={{ color: balanceColor }}>
                     {formatEUR(balance)}
                   </p>
@@ -176,16 +236,22 @@ export function GastosScreen({
                   </span>
                 </div>
 
+                {incomeItems.length === 0 &&
+                transfersIn.length === 0 &&
+                transfersOut.length === 0 &&
+                items.length === 0 ? (
+                  <p className="mt-4 border-t border-[var(--gridline)] pt-3 text-sm text-[var(--text-muted)]">
+                    Sin movimientos todavía.
+                  </p>
+                ) : null}
+
                 {incomeItems.length > 0 && (
                   <ul className="mt-4 flex flex-col gap-1 border-t border-[var(--gridline)] pt-3 text-sm">
                     {incomeItems.map((i) => (
                       <li key={i.id} className="flex items-center justify-between gap-2">
                         <span className="text-[var(--text-secondary)]">{i.label}</span>
-                        <span className="flex items-center gap-2">
-                          <span className="tabular-nums font-medium" style={{ color: "var(--series-income)" }}>
-                            +{formatEUR(i.monthlyAmount)}
-                          </span>
-                          <DeleteButton onClick={() => onRemoveIncome(i.id)} label={`Eliminar ingreso ${i.label}`} />
+                        <span className="tabular-nums font-medium" style={{ color: "var(--series-income)" }}>
+                          +{formatEUR(i.monthlyAmount)}
                         </span>
                       </li>
                     ))}
@@ -201,7 +267,7 @@ export function GastosScreen({
                           <span className="tabular-nums font-medium" style={{ color: "var(--series-violet)" }}>
                             +{formatEUR(t.monthlyAmount)}
                           </span>
-                          <DeleteButton onClick={() => onRemoveTransfer(t.id)} label="Eliminar transferencia" />
+                          <DeleteButton onClick={() => handleRemoveTransfer(t.id)} label="Eliminar transferencia" />
                         </span>
                       </li>
                     ))}
@@ -217,7 +283,7 @@ export function GastosScreen({
                           <span className="tabular-nums font-medium" style={{ color: "var(--series-violet)" }}>
                             −{formatEUR(t.monthlyAmount)}
                           </span>
-                          <DeleteButton onClick={() => onRemoveTransfer(t.id)} label="Eliminar transferencia" />
+                          <DeleteButton onClick={() => handleRemoveTransfer(t.id)} label="Eliminar transferencia" />
                         </span>
                       </li>
                     ))}
@@ -238,7 +304,10 @@ export function GastosScreen({
                           <span className="tabular-nums font-medium text-[var(--text-primary)]">
                             −{formatEUR(item.monthlyAmount)}
                           </span>
-                          <DeleteButton onClick={() => onRemoveExpense(item.id)} label={`Eliminar gasto ${item.label}`} />
+                          <DeleteButton
+                            onClick={() => handleRemoveExpense(item.label, item.id)}
+                            label={`Eliminar gasto ${item.label}`}
+                          />
                         </span>
                       </li>
                     ))}

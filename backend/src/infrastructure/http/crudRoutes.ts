@@ -50,7 +50,7 @@ export function registerCrudRoutes<T, TNew>(
   });
 }
 
-function handleError(error: unknown, reply: import("fastify").FastifyReply): void {
+export function handleError(error: unknown, reply: import("fastify").FastifyReply): void {
   if (error instanceof ValidationError) {
     reply.code(400).send({ error: error.message });
     return;

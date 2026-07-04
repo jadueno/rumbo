@@ -3,16 +3,16 @@ import type { NewTransfer } from "../../domain/types";
 import { Field } from "../../components/Field";
 
 export function AddTransferForm({
-  knownAccounts,
+  accountNames,
   onSubmit,
   onCancel,
 }: {
-  knownAccounts: string[];
+  accountNames: string[];
   onSubmit: (transfer: NewTransfer) => Promise<void>;
   onCancel: () => void;
 }) {
-  const [fromAccount, setFromAccount] = useState(knownAccounts[0] ?? "");
-  const [toAccount, setToAccount] = useState("");
+  const [fromAccount, setFromAccount] = useState(accountNames[0] ?? "");
+  const [toAccount, setToAccount] = useState(accountNames[1] ?? accountNames[0] ?? "");
   const [monthlyAmount, setMonthlyAmount] = useState(0);
   const [isSavingsOrInvestment, setIsSavingsOrInvestment] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -33,22 +33,38 @@ export function AddTransferForm({
     >
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Desde">
-          <input
+          <select
             required
-            list="known-accounts-transfer"
             value={fromAccount}
             onChange={(e) => setFromAccount(e.target.value)}
             className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-sm text-[var(--text-primary)]"
-          />
+          >
+            <option value="" disabled>
+              Elige una cuenta
+            </option>
+            {accountNames.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
         </Field>
-        <Field label="Hasta (cuenta o producto)">
-          <input
+        <Field label="Hasta">
+          <select
             required
-            list="known-accounts-transfer"
             value={toAccount}
             onChange={(e) => setToAccount(e.target.value)}
             className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-sm text-[var(--text-primary)]"
-          />
+          >
+            <option value="" disabled>
+              Elige una cuenta
+            </option>
+            {accountNames.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="Importe mensual (€)">
           <input
@@ -70,15 +86,10 @@ export function AddTransferForm({
           Es ahorro o inversión real
         </label>
       </div>
-      <datalist id="known-accounts-transfer">
-        {knownAccounts.map((a) => (
-          <option key={a} value={a} />
-        ))}
-      </datalist>
       <div className="flex gap-2">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || accountNames.length === 0}
           className="rounded-lg px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
           style={{ backgroundColor: "var(--series-violet)" }}
         >
@@ -88,6 +99,11 @@ export function AddTransferForm({
           Cancelar
         </button>
       </div>
+      {accountNames.length === 0 && (
+        <p className="text-xs" style={{ color: "var(--status-critical)" }}>
+          Primero crea una cuenta.
+        </p>
+      )}
     </form>
   );
 }

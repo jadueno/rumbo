@@ -23,8 +23,8 @@ export interface AccountBalance {
  * cuenta las transferencias entre cuentas (una cuenta puede tener superávit
  * en ingresos-gastos pero balance bajo porque ese dinero se transfiere fuera).
  */
-export function balanceByAccount(profile: FinancialProfile): AccountBalance[] {
-  const accounts: string[] = [];
+export function balanceByAccount(profile: FinancialProfile, masterAccounts: string[] = []): AccountBalance[] {
+  const accounts: string[] = [...masterAccounts];
   const add = (a: string) => {
     if (!accounts.includes(a)) accounts.push(a);
   };
