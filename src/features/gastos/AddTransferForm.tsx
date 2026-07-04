@@ -14,7 +14,6 @@ export function AddTransferForm({
   const [fromAccount, setFromAccount] = useState(accountNames[0] ?? "");
   const [toAccount, setToAccount] = useState(accountNames[1] ?? accountNames[0] ?? "");
   const [monthlyAmount, setMonthlyAmount] = useState(0);
-  const [isSavingsOrInvestment, setIsSavingsOrInvestment] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   return (
@@ -24,7 +23,7 @@ export function AddTransferForm({
         e.preventDefault();
         setSubmitting(true);
         try {
-          await onSubmit({ fromAccount, toAccount, monthlyAmount, isSavingsOrInvestment });
+          await onSubmit({ fromAccount, toAccount, monthlyAmount, isSavingsOrInvestment: false });
           onCancel();
         } finally {
           setSubmitting(false);
@@ -77,14 +76,6 @@ export function AddTransferForm({
             className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-sm text-[var(--text-primary)]"
           />
         </Field>
-        <label className="mt-6 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-          <input
-            type="checkbox"
-            checked={isSavingsOrInvestment}
-            onChange={(e) => setIsSavingsOrInvestment(e.target.checked)}
-          />
-          Es ahorro o inversión real
-        </label>
       </div>
       <div className="flex gap-2">
         <button
