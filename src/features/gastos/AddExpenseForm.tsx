@@ -2,7 +2,10 @@ import { useState } from "react";
 import type { ExpenseGroup, NewExpenseItem } from "../../domain/types";
 import { Field } from "../../components/Field";
 
-const categories: ExpenseGroup[] = ["Fijos", "Variables", "Autónomo"];
+const categories: { value: ExpenseGroup; label: string }[] = [
+  { value: "Fijos", label: "Obligatorio" },
+  { value: "Variables", label: "Opcional" },
+];
 
 export function AddExpenseForm({
   accountNames,
@@ -59,13 +62,13 @@ export function AddExpenseForm({
             className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-sm text-[var(--text-primary)]"
           >
             {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
+              <option key={c.value} value={c.value}>
+                {c.label}
               </option>
             ))}
           </select>
         </Field>
-        <Field label="Inmueble/destino (opcional)">
+        <Field label="Nota (opcional)">
           <input
             value={property}
             onChange={(e) => setProperty(e.target.value)}

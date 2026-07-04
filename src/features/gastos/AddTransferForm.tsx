@@ -13,7 +13,7 @@ export function AddTransferForm({
 }) {
   const [fromAccount, setFromAccount] = useState(accountNames[0] ?? "");
   const [toAccount, setToAccount] = useState(accountNames[1] ?? accountNames[0] ?? "");
-  const [monthlyAmount, setMonthlyAmount] = useState(0);
+  const [monthlyAmount, setMonthlyAmount] = useState<number | "">("");
   const [submitting, setSubmitting] = useState(false);
 
   return (
@@ -23,7 +23,7 @@ export function AddTransferForm({
         e.preventDefault();
         setSubmitting(true);
         try {
-          await onSubmit({ fromAccount, toAccount, monthlyAmount, isSavingsOrInvestment: false });
+          await onSubmit({ fromAccount, toAccount, monthlyAmount: Number(monthlyAmount), isSavingsOrInvestment: false });
           onCancel();
         } finally {
           setSubmitting(false);
@@ -72,7 +72,7 @@ export function AddTransferForm({
             min={0}
             step={0.01}
             value={monthlyAmount}
-            onChange={(e) => setMonthlyAmount(Number(e.target.value))}
+            onChange={(e) => setMonthlyAmount(e.target.value === "" ? "" : Number(e.target.value))}
             className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-sm text-[var(--text-primary)]"
           />
         </Field>
