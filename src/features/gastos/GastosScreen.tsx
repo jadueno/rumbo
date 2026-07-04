@@ -40,6 +40,7 @@ export function GastosScreen({
   const [accountError, setAccountError] = useState<string | null>(null);
   const totalIncome = totalMonthlyIncome(profile);
   const totalExpenses = totalMonthlyExpenses(profile);
+  const balanceDiff = totalIncome - totalExpenses;
   const accountNames = accounts.map((a) => a.name);
   const accountBalances = balanceByAccount(profile, accountNames);
 
@@ -79,6 +80,15 @@ export function GastosScreen({
           Ingresas <strong className="font-bold text-[var(--text-primary)]">{formatEUR(totalIncome)}</strong>{" "}
           y te queda por pagar{" "}
           <strong className="font-bold text-[var(--text-primary)]">{formatEUR(totalExpenses)}</strong> al mes.
+          {balanceDiff !== 0 && (
+            <strong
+              className="font-bold"
+              style={{ color: balanceDiff < 0 ? "var(--status-critical)" : "var(--status-good)" }}
+            >
+              {" "}
+              ({balanceDiff < 0 ? "Te faltan" : "Te sobran"} {formatEUR(Math.abs(balanceDiff))})
+            </strong>
+          )}
         </p>
       </div>
 
