@@ -1,18 +1,9 @@
 import type { FinancialProfile } from "../../domain/types";
-import {
-  balanceByAccount,
-  expensesByGroup,
-  expensesByProperty,
-  formatEUR,
-  totalMonthlyExpenses,
-} from "../../domain/calculations";
+import { balanceByAccount, formatEUR, totalMonthlyExpenses } from "../../domain/calculations";
 import { Card } from "../../components/Card";
-import { CategoryBreakdown } from "../../components/CategoryBreakdown";
 
 export function GastosScreen({ profile }: { profile: FinancialProfile }) {
   const total = totalMonthlyExpenses(profile);
-  const byGroup = expensesByGroup(profile);
-  const byProperty = expensesByProperty(profile);
   const accountBalances = balanceByAccount(profile);
 
   return (
@@ -23,15 +14,6 @@ export function GastosScreen({ profile }: { profile: FinancialProfile }) {
           Todo lo que te queda por pagar cada mes:{" "}
           <strong className="font-bold text-[var(--text-primary)]">{formatEUR(total)}</strong> en total.
         </p>
-      </div>
-
-      <div className="grid gap-6 sm:grid-cols-2">
-        <Card>
-          <CategoryBreakdown title="Por tipo de gasto" data={byGroup} />
-        </Card>
-        <Card>
-          <CategoryBreakdown title="Por inmueble / destino" data={byProperty} />
-        </Card>
       </div>
 
       <div>

@@ -1,4 +1,4 @@
-import type { Debt, ExpenseGroup, FinancialProfile } from "./types";
+import type { Debt, FinancialProfile } from "./types";
 
 export function totalMonthlyIncome(profile: FinancialProfile): number {
   return sum(profile.incomes.map((i) => i.monthlyAmount));
@@ -6,29 +6,6 @@ export function totalMonthlyIncome(profile: FinancialProfile): number {
 
 export function totalMonthlyExpenses(profile: FinancialProfile): number {
   return sum(profile.expenses.map((e) => e.monthlyAmount));
-}
-
-export function expensesByGroup(
-  profile: FinancialProfile,
-): Record<ExpenseGroup, number> {
-  const groups: Record<ExpenseGroup, number> = {
-    Fijos: 0,
-    Variables: 0,
-    Autónomo: 0,
-  };
-  for (const e of profile.expenses) groups[e.group] += e.monthlyAmount;
-  return groups;
-}
-
-export function expensesByProperty(
-  profile: FinancialProfile,
-): Record<string, number> {
-  const result: Record<string, number> = {};
-  for (const e of profile.expenses) {
-    const key = e.property ?? "General";
-    result[key] = (result[key] ?? 0) + e.monthlyAmount;
-  }
-  return result;
 }
 
 export interface AccountBalance {
