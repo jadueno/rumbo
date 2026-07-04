@@ -45,6 +45,7 @@ La capa `domain/` no importa nada de Fastify ni de `pg` — los casos de uso rec
 Dos piezas de lógica destacables:
 
 - **Saldo de deuda sin input manual**: cada deuda guarda un saldo conocido y el mes al que corresponde (`balanceAsOf`). La función `estimatedRemainingBalance` resta una cuota por cada mes transcurrido desde entonces hasta hoy — el dato nunca queda desactualizado sin que el usuario tenga que acordarse de tocarlo cada mes.
+- **El mismo patrón, invertido, para fondo de emergencia e inversiones**: cada `SavingsTracker` se vincula a una cuenta y guarda un saldo de partida + el mes al que corresponde. En vez de restar una cuota fija (como la deuda), `estimatedTrackerBalance` suma, por cada mes transcurrido, el balance neto *actual* de la cuenta vinculada (`balanceByAccount(...).balance`: ingresos + transferencias entrantes − gastos − transferencias salientes) — reutilizando un cálculo que ya existía para otra pantalla, en vez de duplicar la lógica de "cuánto entra/sale de esta cuenta". Es una aproximación (asume que ese ritmo mensual se ha mantenido constante), igual que la de las deudas.
 - **Recomendaciones basadas en reglas, no en IA**: un motor de reglas simple (`buildRecommendations`) detecta señales concretas — dinero acumulado sin destino en cuentas corrientes, tasa de ahorro por debajo de un umbral, fondo de emergencia incompleto, carga de deuda alta — y las prioriza por severidad. Determinista y explicable, no una caja negra.
 
 ## Recalculado reactivo de extremo a extremo
@@ -55,9 +56,10 @@ Todas las pantallas reciben el mismo `FinancialProfile` calculado a partir de lo
 
 Todo borrado (ingreso, gasto, deuda, transferencia, cuenta) pasa por un modal de confirmación propio, no por el `confirm()` nativo del navegador. Está implementado como un contexto de React (`ConfirmProvider` + hook `useConfirm`) que expone una función `confirm(mensaje): Promise<boolean>`: guarda el mensaje pendiente en estado, renderiza el modal, y resuelve la promesa cuando el usuario pulsa un botón. Cualquier pantalla puede hacer `if (await confirm(...)) { borrar(); }` sin preocuparse de cómo se renderiza el modal.
 
-## Regla de negocio real en el borrado de cuentas
+## Reglas de negocio reales, no solo CRUD
 
-Las cuentas bancarias son una entidad propia en la base de datos (no solo un texto suelto en cada ingreso/gasto). Borrar una cuenta que todavía tiene ingresos, gastos o transferencias asociados está bloqueado por el backend, que responde con el número exacto de movimientos que hay que quitar antes — en vez de borrar en cascada (perder datos sin querer) o dejar referencias huérfanas.
+- **Borrado de cuentas.** Las cuentas bancarias son una entidad propia en la base de datos (no solo un texto suelto en cada ingreso/gasto). Borrar una cuenta que todavía tiene ingresos, gastos o transferencias asociados está bloqueado por el backend, que responde con el número exacto de movimientos que hay que quitar antes — en vez de borrar en cascada (perder datos sin querer) o dejar referencias huérfanas.
+- **Como mucho un fondo de emergencia.** La restricción de que solo puede existir un `SavingsTracker` de tipo `emergency_fund` está en dos capas a la vez: un índice único parcial en Postgres (`where kind = 'emergency_fund'`) como garantía de última línea, y una comprobación en el caso de uso que devuelve un mensaje de error legible antes de llegar a la base de datos. Las inversiones (`kind = 'investment'`), en cambio, no tienen ese límite.
 
 ## Privacidad por diseño
 

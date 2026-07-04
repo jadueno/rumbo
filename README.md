@@ -70,9 +70,9 @@ Notas:
 ## Datos
 
 - **Ingresos, gastos, deudas, transferencias y cuentas**: viven en Postgres, se editan desde la propia app (botones "+ Añadir..." y "Eliminar" en cada pantalla, con modal de confirmación). El backend valida (importes no negativos, categorías válidas, no se puede borrar una cuenta con movimientos asociados) antes de guardar.
-- **Edad, estructura de cuentas de referencia y fondo de emergencia**: config estática en `src/data/finances.ts` (ignorado por git, con `finances.example.ts` como plantilla) — no cambian con el día a día.
+- **Edad y estructura de cuentas de referencia**: config estática en `src/data/finances.ts` (ignorado por git, con `finances.example.ts` como plantilla) — no cambia con el día a día.
 - El **saldo pendiente de cada deuda** no se edita a mano: cada deuda guarda su saldo conocido y el mes al que corresponde (`balanceAsOf`), y la app resta una cuota por cada mes transcurrido desde entonces.
-- El **saldo del fondo de emergencia** se introduce en la pantalla "Ahorro" y se guarda en `localStorage` del navegador (no en la base de datos, es solo una referencia personal).
+- El **fondo de emergencia y las inversiones** (pantalla "Ahorro") funcionan igual que las deudas pero al revés: se vinculan a una cuenta y guardan un saldo de partida + el mes al que corresponde, y la app suma sola cada mes el balance neto de esa cuenta desde entonces. El fondo de emergencia es como mucho uno; las inversiones pueden ser varias, con su propio alta/baja.
 
 ## Estructura
 
