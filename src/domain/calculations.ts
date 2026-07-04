@@ -31,6 +31,27 @@ export function expensesByProperty(
   return result;
 }
 
+export interface AccountBalance {
+  account: string;
+  income: number;
+  expenses: number;
+  balance: number;
+}
+
+/** Ingresos, gastos y balance agrupados por cuenta bancaria, en el orden en que aparecen las cuentas en el perfil. */
+export function balanceByAccount(profile: FinancialProfile): AccountBalance[] {
+  const accounts: string[] = [];
+  for (const a of profile.accountFlows) if (!accounts.includes(a.account)) accounts.push(a.account);
+  for (const i of profile.incomes) if (!accounts.includes(i.account)) accounts.push(i.account);
+  for (const e of profile.expenses) if (!accounts.includes(e.account)) accounts.push(e.account);
+
+  return accounts.map((account) => {
+    const income = sum(profile.incomes.filter((i) => i.account === account).map((i) => i.monthlyAmount));
+    const expenses = sum(profile.expenses.filter((e) => e.account === account).map((e) => e.monthlyAmount));
+    return { account, income, expenses, balance: income - expenses };
+  });
+}
+
 export function netMonthlyCashflow(profile: FinancialProfile): number {
   return totalMonthlyIncome(profile) - totalMonthlyExpenses(profile);
 }
