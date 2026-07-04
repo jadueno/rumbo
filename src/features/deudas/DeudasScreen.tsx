@@ -7,8 +7,10 @@ import {
   totalMonthlyIncome,
 } from "../../domain/calculations";
 import { Card } from "../../components/Card";
+import { useLiveIncomes } from "../gastos/useLiveIncomes";
 
-export function DeudasScreen({ profile }: { profile: FinancialProfile }) {
+export function DeudasScreen({ profile: baseProfile }: { profile: FinancialProfile }) {
+  const [profile] = useLiveIncomes(baseProfile);
   const totalPayments = totalMonthlyDebtPayments(profile);
   const income = totalMonthlyIncome(profile);
   const debtLoad = income > 0 ? totalPayments / income : 0;

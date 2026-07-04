@@ -6,8 +6,10 @@ import {
   totalMonthlyIncome,
 } from "../../domain/calculations";
 import { Card } from "../../components/Card";
+import { useLiveIncomes } from "./useLiveIncomes";
 
-export function GastosScreen({ profile }: { profile: FinancialProfile }) {
+export function GastosScreen({ profile: baseProfile }: { profile: FinancialProfile }) {
+  const [profile, updateIncome] = useLiveIncomes(baseProfile);
   const totalIncome = totalMonthlyIncome(profile);
   const totalExpenses = totalMonthlyExpenses(profile);
   const accountBalances = balanceByAccount(profile);
@@ -22,6 +24,41 @@ export function GastosScreen({ profile }: { profile: FinancialProfile }) {
           <strong className="font-bold text-[var(--text-primary)]">{formatEUR(totalExpenses)}</strong> al mes.
         </p>
       </div>
+
+      <Card>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Ingresos</h2>
+          <p className="text-xl font-bold tabular-nums" style={{ color: "var(--series-income)" }}>
+            {formatEUR(totalIncome)}
+          </p>
+        </div>
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
+          Edita cualquier importe si cambia: el resto de la app (cuentas, ahorro, deudas, recomendaciones)
+          se recalcula solo.
+        </p>
+        <ul className="mt-4 flex flex-col gap-3">
+          {profile.incomes.map((income, idx) => (
+            <li key={`${income.account}-${income.label}-${idx}`} className="flex items-center justify-between gap-3">
+              <div className="text-sm">
+                <p className="font-medium text-[var(--text-primary)]">{income.label}</p>
+                <p className="text-[var(--text-muted)]">{income.account}</p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  min={0}
+                  step={10}
+                  aria-label={`Importe mensual de ${income.label}`}
+                  value={income.monthlyAmount}
+                  onChange={(e) => updateIncome(income.account, income.label, Number(e.target.value))}
+                  className="w-28 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-right text-sm tabular-nums text-[var(--text-primary)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--series-income)]"
+                />
+                <span className="text-sm text-[var(--text-muted)]">€</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Card>
 
       <div>
         <h2 className="mb-3 text-lg font-semibold text-[var(--text-primary)]">Por cuenta bancaria</h2>

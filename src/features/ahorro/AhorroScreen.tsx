@@ -9,8 +9,10 @@ import {
 import { Card } from "../../components/Card";
 import { ProgressBar } from "../../components/ProgressBar";
 import { useEmergencyFundBalance } from "./useEmergencyFundBalance";
+import { useLiveIncomes } from "../gastos/useLiveIncomes";
 
-export function AhorroScreen({ profile }: { profile: FinancialProfile }) {
+export function AhorroScreen({ profile: baseProfile }: { profile: FinancialProfile }) {
+  const [profile] = useLiveIncomes(baseProfile);
   const deliberate = deliberateSavingsAndInvestment(profile);
   const idle = idleSurplus(profile);
   const rate = savingsRate(profile);
