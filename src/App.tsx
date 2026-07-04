@@ -1,21 +1,13 @@
 import { useState, type ComponentType, type SVGProps } from "react";
 import { financialProfile } from "./data/finances";
 import { ResumenScreen } from "./features/resumen/ResumenScreen";
-import { IngresosScreen } from "./features/ingresos/IngresosScreen";
 import { GastosScreen } from "./features/gastos/GastosScreen";
 import { DeudasScreen } from "./features/deudas/DeudasScreen";
 import { AhorroScreen } from "./features/ahorro/AhorroScreen";
 import { RecomendacionesScreen } from "./features/recomendaciones/RecomendacionesScreen";
-import {
-  HomeIcon,
-  IncomeIcon,
-  ExpenseIcon,
-  DebtIcon,
-  SavingsIcon,
-  TipIcon,
-} from "./components/icons";
+import { HomeIcon, ExpenseIcon, DebtIcon, SavingsIcon, TipIcon } from "./components/icons";
 
-type Section = "resumen" | "ingresos" | "gastos" | "deudas" | "ahorro" | "recomendaciones";
+type Section = "resumen" | "gastos" | "deudas" | "ahorro" | "recomendaciones";
 
 const sections: {
   id: Section;
@@ -24,8 +16,7 @@ const sections: {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 }[] = [
   { id: "resumen", label: "Resumen", shortLabel: "Resumen", icon: HomeIcon },
-  { id: "ingresos", label: "Ingresos", shortLabel: "Ingresos", icon: IncomeIcon },
-  { id: "gastos", label: "Gastos", shortLabel: "Gastos", icon: ExpenseIcon },
+  { id: "gastos", label: "Ingresos y Gastos", shortLabel: "Ingresos/Gastos", icon: ExpenseIcon },
   { id: "deudas", label: "Deudas", shortLabel: "Deudas", icon: DebtIcon },
   { id: "ahorro", label: "Ahorro", shortLabel: "Ahorro", icon: SavingsIcon },
   { id: "recomendaciones", label: "Recomendaciones", shortLabel: "Consejos", icon: TipIcon },
@@ -65,7 +56,6 @@ export default function App() {
       <main className="flex-1 p-4 pb-24 sm:p-8 sm:pb-8">
         <div className="mx-auto max-w-3xl">
           {section === "resumen" && <ResumenScreen profile={financialProfile} />}
-          {section === "ingresos" && <IngresosScreen profile={financialProfile} />}
           {section === "gastos" && <GastosScreen profile={financialProfile} />}
           {section === "deudas" && <DeudasScreen profile={financialProfile} />}
           {section === "ahorro" && <AhorroScreen profile={financialProfile} />}

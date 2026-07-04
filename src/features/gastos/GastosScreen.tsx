@@ -1,18 +1,25 @@
 import type { FinancialProfile } from "../../domain/types";
-import { balanceByAccount, formatEUR, totalMonthlyExpenses } from "../../domain/calculations";
+import {
+  balanceByAccount,
+  formatEUR,
+  totalMonthlyExpenses,
+  totalMonthlyIncome,
+} from "../../domain/calculations";
 import { Card } from "../../components/Card";
 
 export function GastosScreen({ profile }: { profile: FinancialProfile }) {
-  const total = totalMonthlyExpenses(profile);
+  const totalIncome = totalMonthlyIncome(profile);
+  const totalExpenses = totalMonthlyExpenses(profile);
   const accountBalances = balanceByAccount(profile);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Gastos</h1>
+        <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Ingresos y Gastos</h1>
         <p className="text-base font-medium text-[var(--text-secondary)]">
-          Todo lo que te queda por pagar cada mes:{" "}
-          <strong className="font-bold text-[var(--text-primary)]">{formatEUR(total)}</strong> en total.
+          Ingresas <strong className="font-bold text-[var(--text-primary)]">{formatEUR(totalIncome)}</strong>{" "}
+          y te queda por pagar{" "}
+          <strong className="font-bold text-[var(--text-primary)]">{formatEUR(totalExpenses)}</strong> al mes.
         </p>
       </div>
 
