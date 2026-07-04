@@ -35,7 +35,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           role="alertdialog"
           aria-modal="true"
           aria-labelledby="confirm-dialog-message"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/40 p-4"
+          style={{ overscrollBehavior: "contain" }}
           onKeyDown={(e) => e.key === "Escape" && close(false)}
         >
           <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-5 shadow-lg">

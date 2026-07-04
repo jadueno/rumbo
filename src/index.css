@@ -48,10 +48,13 @@
 
 html {
   color-scheme: light dark;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
   background: var(--page);
   color: var(--text-primary);
 }
