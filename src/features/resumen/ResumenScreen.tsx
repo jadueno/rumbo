@@ -52,21 +52,6 @@ export function ResumenScreen({
 
       {/* Hero: el dato más importante del mes, destacado en el acento de marca. */}
       <div className="relative overflow-hidden rounded-[1.75rem] bg-[var(--accent-yellow)] p-6 sm:p-8">
-        <svg
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 size-full opacity-30"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M 88 12 C 65 28, 72 50, 48 46 C 26 42, 32 70, 10 84"
-            fill="none"
-            stroke="var(--on-accent-yellow)"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
         <span aria-hidden="true" className="blob -top-12 -right-10 size-44 bg-[var(--accent-violet-blob)]" />
         <span aria-hidden="true" className="blob -bottom-16 left-6 size-28 bg-[var(--accent-violet-blob)]" />
         <div className="relative">
