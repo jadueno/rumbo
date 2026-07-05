@@ -12,15 +12,9 @@ import { Card } from "../../components/Card";
 import { Button } from "../../components/Button";
 import { IconBadge } from "../../components/IconBadge";
 import { ScoreGauge } from "../../components/ScoreGauge";
-import { ProgressBar } from "../../components/ProgressBar";
+import { FactorBreakdownList } from "../../components/FactorBreakdownList";
 import { BeforeAfterComparison } from "../../components/BeforeAfterComparison";
 import { SimulatorIcon } from "../../components/icons";
-
-function toneColorForScore(score: number): string {
-  if (score >= 70) return "var(--status-good)";
-  if (score >= 40) return "var(--status-warning)";
-  return "var(--status-critical)";
-}
 
 function SliderField({
   label,
@@ -157,16 +151,8 @@ export function SimuladorScreen({
             <span className="text-xs font-semibold text-[var(--text-muted)]">Simulado</span>
           </div>
         </div>
-        <div className="mt-6 flex flex-col gap-3">
-          {after.healthScore.factors.map((factor) => (
-            <div key={factor.key} className="flex flex-col gap-1">
-              <div className="flex items-baseline justify-between text-sm">
-                <span className="font-medium text-[var(--text-primary)]">{factor.label}</span>
-                <span className="font-semibold tabular-nums text-[var(--text-muted)]">{factor.score}/100</span>
-              </div>
-              <ProgressBar progress={factor.score / 100} color={toneColorForScore(factor.score)} label={factor.label} />
-            </div>
-          ))}
+        <div className="mt-6">
+          <FactorBreakdownList factors={after.healthScore.factors} />
         </div>
       </Card>
 
