@@ -256,6 +256,168 @@ export function buildRecommendations(
   return recs;
 }
 
+export interface FinancialHealthMetrics {
+  savingsRate: number;
+  debtLoad: number;
+  emergencyFundProgress: number;
+  idleRatio: number;
+}
+
+export type FinancialHealthFactorKey = "savingsRate" | "emergencyFund" | "debtLoad" | "idleSurplus";
+
+export interface FinancialHealthFactor {
+  key: FinancialHealthFactorKey;
+  label: string;
+  /** 0-100: cómo de bien está este factor por sí solo. */
+  score: number;
+  /** Peso de este factor en el score final (todos los pesos suman 1). */
+  weight: number;
+}
+
+export interface FinancialHealthScore {
+  /** 0-100: media ponderada de los factores. */
+  score: number;
+  factors: FinancialHealthFactor[];
+}
+
+/**
+ * Umbrales de referencia: los mismos que ya usa buildRecommendations para
+ * decidir cuándo avisar de cada cosa, reutilizados aquí para que el score y
+ * las recomendaciones cuenten siempre la misma historia.
+ */
+const SAVINGS_RATE_TARGET = 0.2;
+const DEBT_LOAD_LIMIT = 0.35;
+const IDLE_RATIO_LIMIT = 0.2;
+
+function clampScore(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+/**
+ * Combina métricas ya calculadas (tasa de ahorro, carga de deuda, progreso
+ * del fondo de emergencia, ratio de dinero ocioso) en un único score 0-100
+ * con desglose explicable por factor, en vez de una caja negra. Separado de
+ * financialHealthScore para poder recalcularlo también sobre métricas
+ * hipotéticas (el simulador "qué pasaría si").
+ */
+export function scoreFromMetrics(metrics: FinancialHealthMetrics): FinancialHealthScore {
+  const factors: FinancialHealthFactor[] = [
+    {
+      key: "savingsRate",
+      label: "Tasa de ahorro/inversión",
+      score: clampScore((metrics.savingsRate / SAVINGS_RATE_TARGET) * 100),
+      weight: 0.3,
+    },
+    {
+      key: "emergencyFund",
+      label: "Fondo de emergencia",
+      score: clampScore(metrics.emergencyFundProgress * 100),
+      weight: 0.3,
+    },
+    {
+      key: "debtLoad",
+      label: "Carga de deuda",
+      score: clampScore(100 - (metrics.debtLoad / DEBT_LOAD_LIMIT) * 100),
+      weight: 0.25,
+    },
+    {
+      key: "idleSurplus",
+      label: "Dinero con destino (no ocioso)",
+      score: clampScore(100 - (metrics.idleRatio / IDLE_RATIO_LIMIT) * 100),
+      weight: 0.15,
+    },
+  ];
+
+  const score = clampScore(sum(factors.map((f) => f.score * f.weight)));
+  return { score, factors };
+}
+
+/** Ratio de dinero ocioso (sin destino de ahorro/inversión) sobre el ingreso mensual. */
+export function idleRatio(profile: FinancialProfile, accountBalances: AccountBalance[], trackers: SavingsTracker[]): number {
+  const income = totalMonthlyIncome(profile);
+  if (income === 0) return 0;
+  return idleSurplus(accountBalances, trackers) / income;
+}
+
+/** Score de salud financiera 0-100 a partir de los datos reales actuales. */
+export function financialHealthScore(
+  profile: FinancialProfile,
+  accountBalances: AccountBalance[],
+  trackers: SavingsTracker[],
+  emergencyFundBalance: number,
+): FinancialHealthScore {
+  const income = totalMonthlyIncome(profile);
+  const debtLoad = income === 0 ? 0 : totalMonthlyDebtPayments(profile) / income;
+  return scoreFromMetrics({
+    savingsRate: savingsRate(profile, accountBalances, trackers),
+    debtLoad,
+    emergencyFundProgress: emergencyFundProgress(profile, emergencyFundBalance),
+    idleRatio: idleRatio(profile, accountBalances, trackers),
+  });
+}
+
+export interface SimulatorAdjustments {
+  /** Cambio mensual hipotético de ingresos, en euros (puede ser negativo). */
+  incomeDelta: number;
+  /** Cambio mensual hipotético de gastos, en euros (puede ser negativo). */
+  expensesDelta: number;
+  /** Aportación mensual extra hipotética a ahorro/inversión, en euros (puede ser negativa). */
+  extraSavingsDelta: number;
+}
+
+export interface SimulatorResult {
+  income: number;
+  expenses: number;
+  netCashflow: number;
+  deliberateSavings: number;
+  savingsRate: number;
+  debtLoad: number;
+  healthScore: FinancialHealthScore;
+}
+
+/**
+ * Recalcula cashflow, tasa de ahorro, carga de deuda y score de salud
+ * financiera bajo unos ajustes hipotéticos, sin tocar los datos reales. El
+ * progreso del fondo de emergencia y el ratio de dinero ocioso son saldos
+ * acumulados, no flujos mensuales, así que no cambian con estos ajustes
+ * (proyectarlos hacia adelante es un problema distinto, no este simulador).
+ */
+export function simulateAdjustments(
+  profile: FinancialProfile,
+  accountBalances: AccountBalance[],
+  trackers: SavingsTracker[],
+  emergencyFundBalance: number,
+  adjustments: SimulatorAdjustments,
+): SimulatorResult {
+  const baseIncome = totalMonthlyIncome(profile);
+  const baseExpenses = totalMonthlyExpenses(profile);
+  const baseSavings = deliberateSavingsAndInvestment(accountBalances, trackers);
+  const debtPayments = totalMonthlyDebtPayments(profile);
+
+  const income = Math.max(0, baseIncome + adjustments.incomeDelta);
+  const expenses = Math.max(0, baseExpenses + adjustments.expensesDelta);
+  const savings = Math.max(0, baseSavings + adjustments.extraSavingsDelta);
+
+  const rate = income === 0 ? 0 : savings / income;
+  const debtLoad = income === 0 ? 0 : debtPayments / income;
+  const healthScore = scoreFromMetrics({
+    savingsRate: rate,
+    debtLoad,
+    emergencyFundProgress: emergencyFundProgress(profile, emergencyFundBalance),
+    idleRatio: idleRatio(profile, accountBalances, trackers),
+  });
+
+  return {
+    income,
+    expenses,
+    netCashflow: income - expenses,
+    deliberateSavings: savings,
+    savingsRate: rate,
+    debtLoad,
+    healthScore,
+  };
+}
+
 function sum(values: number[]): number {
   return values.reduce((a, b) => a + b, 0);
 }

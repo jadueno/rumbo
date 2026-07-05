@@ -9,14 +9,18 @@ import {
   emergencyFundTracker,
   estimatedRemainingBalance,
   estimatedTrackerBalance,
+  financialHealthScore,
   formatEUR,
   formatMonth,
+  idleRatio,
   idleSurplus,
   investmentTrackers,
   monthsElapsedSince,
   netMonthlyCashflow,
   recommendedNetWorth,
   savingsRate,
+  scoreFromMetrics,
+  simulateAdjustments,
   totalEstimatedRemainingDebt,
   totalMonthlyDebtPayments,
   totalMonthlyExpenses,
@@ -472,6 +476,164 @@ describe("buildRecommendations", () => {
 
     const halfFull = buildRecommendations(profile, target * 0.6, accountBalances, trackers);
     expect(halfFull.find((r) => r.title === "Fondo de emergencia incompleto")?.severity).toBe("media");
+  });
+});
+
+describe("scoreFromMetrics", () => {
+  it("da 100 cuando todas las métricas están en o por encima de su objetivo", () => {
+    const result = scoreFromMetrics({
+      savingsRate: 0.2,
+      debtLoad: 0,
+      emergencyFundProgress: 1,
+      idleRatio: 0,
+    });
+    expect(result.score).toBe(100);
+    expect(result.factors.every((f) => f.score === 100)).toBe(true);
+  });
+
+  it("da 0 cuando todas las métricas están en el peor caso posible", () => {
+    const result = scoreFromMetrics({
+      savingsRate: 0,
+      debtLoad: 0.35,
+      emergencyFundProgress: 0,
+      idleRatio: 0.2,
+    });
+    expect(result.score).toBe(0);
+  });
+
+  it("no baja de 0 ni sube de 100 aunque las métricas superen los umbrales de referencia", () => {
+    const best = scoreFromMetrics({ savingsRate: 1, debtLoad: 0, emergencyFundProgress: 1, idleRatio: 0 });
+    const worst = scoreFromMetrics({ savingsRate: 0, debtLoad: 1, emergencyFundProgress: 0, idleRatio: 1 });
+    expect(best.score).toBe(100);
+    expect(worst.score).toBe(0);
+    expect(worst.factors.every((f) => f.score === 0)).toBe(true);
+  });
+
+  it("los pesos de los factores suman 1", () => {
+    const result = scoreFromMetrics({ savingsRate: 0.1, debtLoad: 0.1, emergencyFundProgress: 0.5, idleRatio: 0.1 });
+    const totalWeight = result.factors.reduce((acc, f) => acc + f.weight, 0);
+    expect(totalWeight).toBeCloseTo(1);
+  });
+
+  it("el score final es la media ponderada de los factores", () => {
+    const result = scoreFromMetrics({ savingsRate: 0.1, debtLoad: 0.35, emergencyFundProgress: 0, idleRatio: 0 });
+    const expected = result.factors.reduce((acc, f) => acc + f.score * f.weight, 0);
+    expect(result.score).toBe(Math.round(expected));
+  });
+});
+
+describe("idleRatio", () => {
+  it("calcula el dinero ocioso como ratio del ingreso mensual", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 2000 }],
+    });
+    const accountBalances = [
+      { account: "Nomina", income: 2000, expenses: 0, transfersIn: 0, transfersOut: 0, balance: 400 },
+    ];
+    expect(idleRatio(profile, accountBalances, [])).toBe(0.2);
+  });
+
+  it("devuelve 0 si no hay ingresos", () => {
+    expect(idleRatio(makeProfile(), [], [])).toBe(0);
+  });
+});
+
+describe("financialHealthScore", () => {
+  it("integra las métricas reales calculadas a partir del perfil", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 2000 }],
+      expenses: [{ id: "1", group: "Fijos", account: "Nomina", label: "Gastos", monthlyAmount: 1000 }],
+      debts: [{ id: "1", name: "Coche", monthlyPayment: 100, dueDate: "2028-01" }],
+      emergencyFund: { targetMonths: 3 },
+    });
+    const trackers: SavingsTracker[] = [
+      { id: "1", kind: "emergency_fund", name: "Fondo", account: "Ahorro", initialBalance: 0, initialBalanceAsOf: "2026-01" },
+    ];
+    const accountBalances = [
+      { account: "Ahorro", income: 0, expenses: 0, transfersIn: 400, transfersOut: 0, balance: 400 },
+      { account: "Nomina", income: 2000, expenses: 1000, transfersIn: 0, transfersOut: 400, balance: 600 },
+    ];
+    const efTarget = emergencyFundTarget(profile); // 3000
+    const result = financialHealthScore(profile, accountBalances, trackers, efTarget * 0.5);
+
+    expect(result.factors.find((f) => f.key === "savingsRate")?.score).toBe(100); // 400/2000 = 20% = objetivo
+    expect(result.factors.find((f) => f.key === "emergencyFund")?.score).toBe(50);
+    expect(result.factors.find((f) => f.key === "debtLoad")?.score).toBeGreaterThan(0);
+    expect(result.score).toBeGreaterThan(0);
+    expect(result.score).toBeLessThanOrEqual(100);
+  });
+});
+
+describe("simulateAdjustments", () => {
+  function baseSetup() {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 2000 }],
+      expenses: [{ id: "1", group: "Fijos", account: "Nomina", label: "Gastos", monthlyAmount: 1500 }],
+      debts: [{ id: "1", name: "Coche", monthlyPayment: 100, dueDate: "2028-01" }],
+      emergencyFund: { targetMonths: 3 },
+    });
+    const trackers: SavingsTracker[] = [
+      { id: "1", kind: "emergency_fund", name: "Fondo", account: "Ahorro", initialBalance: 0, initialBalanceAsOf: "2026-01" },
+    ];
+    const accountBalances = [
+      { account: "Ahorro", income: 0, expenses: 0, transfersIn: 100, transfersOut: 0, balance: 100 },
+      { account: "Nomina", income: 2000, expenses: 1500, transfersIn: 0, transfersOut: 100, balance: 400 },
+    ];
+    return { profile, trackers, accountBalances };
+  }
+
+  it("sin ajustes, reproduce exactamente las métricas reales actuales", () => {
+    const { profile, trackers, accountBalances } = baseSetup();
+    const result = simulateAdjustments(profile, accountBalances, trackers, 0, {
+      incomeDelta: 0,
+      expensesDelta: 0,
+      extraSavingsDelta: 0,
+    });
+    expect(result.income).toBe(totalMonthlyIncome(profile));
+    expect(result.expenses).toBe(totalMonthlyExpenses(profile));
+    expect(result.deliberateSavings).toBe(deliberateSavingsAndInvestment(accountBalances, trackers));
+    expect(result.netCashflow).toBe(netMonthlyCashflow(profile));
+  });
+
+  it("una aportación extra a ahorro sube la tasa de ahorro y el score, sin tocar los datos reales", () => {
+    const { profile, trackers, accountBalances } = baseSetup();
+    const before = financialHealthScore(profile, accountBalances, trackers, 0);
+    const after = simulateAdjustments(profile, accountBalances, trackers, 0, {
+      incomeDelta: 0,
+      expensesDelta: 0,
+      extraSavingsDelta: 300,
+    });
+
+    expect(after.savingsRate).toBeGreaterThan(savingsRate(profile, accountBalances, trackers));
+    expect(after.healthScore.score).toBeGreaterThanOrEqual(before.score);
+    // El perfil original no se ha mutado.
+    expect(deliberateSavingsAndInvestment(accountBalances, trackers)).toBe(100);
+  });
+
+  it("nunca deja ingresos, gastos o ahorro simulados por debajo de 0", () => {
+    const { profile, trackers, accountBalances } = baseSetup();
+    const result = simulateAdjustments(profile, accountBalances, trackers, 0, {
+      incomeDelta: -10000,
+      expensesDelta: -10000,
+      extraSavingsDelta: -10000,
+    });
+    expect(result.income).toBe(0);
+    expect(result.expenses).toBe(0);
+    expect(result.deliberateSavings).toBe(0);
+  });
+
+  it("el fondo de emergencia y el ratio de dinero ocioso no cambian con los ajustes (son saldos, no flujos)", () => {
+    const { profile, trackers, accountBalances } = baseSetup();
+    const efBalance = 1500;
+    const before = financialHealthScore(profile, accountBalances, trackers, efBalance);
+    const after = simulateAdjustments(profile, accountBalances, trackers, efBalance, {
+      incomeDelta: 500,
+      expensesDelta: -200,
+      extraSavingsDelta: 100,
+    });
+    const efFactorBefore = before.factors.find((f) => f.key === "emergencyFund")?.score;
+    const efFactorAfter = after.healthScore.factors.find((f) => f.key === "emergencyFund")?.score;
+    expect(efFactorAfter).toBe(efFactorBefore);
   });
 });
 
