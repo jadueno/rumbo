@@ -188,6 +188,22 @@ export function currentEmergencyFundBalance(
   return estimatedTrackerBalance(tracker, accountBalances, today);
 }
 
+/**
+ * Patrimonio neto actual estimado: suma de todos los seguimientos de ahorro
+ * e inversión (fondo de emergencia + inversiones) menos la deuda pendiente
+ * estimada. Aproximado, igual que estimatedTrackerBalance y
+ * totalEstimatedRemainingDebt: no incluye dinero en cuentas sin seguimiento.
+ */
+export function currentNetWorth(
+  profile: FinancialProfile,
+  accountBalances: AccountBalance[],
+  trackers: SavingsTracker[],
+  today: Date = new Date(),
+): number {
+  const trackedAssets = sum(trackers.map((t) => estimatedTrackerBalance(t, accountBalances, today)));
+  return trackedAssets - totalEstimatedRemainingDebt(profile, today);
+}
+
 export interface Recommendation {
   severity: "alta" | "media" | "baja";
   title: string;
@@ -242,6 +258,60 @@ export function buildRecommendations(
       severity: "alta",
       title: "Carga de deuda elevada",
       detail: `Las cuotas de deuda representan el ${(debtLoad * 100).toFixed(1)}% de los ingresos mensuales.`,
+    });
+  }
+
+  const net = netMonthlyCashflow(profile);
+  if (net < 0) {
+    recs.push({
+      severity: "alta",
+      title: "Gastas más de lo que ingresas",
+      detail: `Cada mes se van ${formatEUR(Math.abs(net))} más de lo que entra. Antes de pensar en ahorro o inversión, hay que cerrar ese agujero: revisa gastos variables o busca ingresos adicionales.`,
+    });
+  }
+
+  const netWorthTarget = recommendedNetWorth(profile);
+  if (netWorthTarget > 0) {
+    const netWorth = currentNetWorth(profile, accountBalances, trackers);
+    const netWorthProgress = netWorth / netWorthTarget;
+    if (netWorthProgress < 0.8) {
+      recs.push({
+        severity: netWorthProgress < 0.5 ? "alta" : "media",
+        title: "Patrimonio por debajo de lo recomendado para tu edad",
+        detail: `Tu patrimonio estimado (${formatEUR(netWorth)}, solo cuentas con seguimiento) está por debajo del recomendado para tu edad e ingresos (${formatEUR(netWorthTarget)}, edad × ingreso anual / 10). No es una carrera, pero conviene vigilar la tendencia.`,
+      });
+    }
+  }
+
+  if (profile.debts.length > 1) {
+    recs.push({
+      severity: "media",
+      title: "Varias deudas activas a la vez",
+      detail: `Tienes ${profile.debts.length} deudas abiertas. Para pagarlas antes, prioriza: la de mayor interés primero (estrategia avalancha, ahorra más dinero) o la de menor saldo primero (estrategia snowball, motiva más rápido). Mantener el pago mínimo en el resto mientras concentras el extra en una sola acelera el fin de todas.`,
+    });
+  }
+
+  if (profile.incomes.length === 1) {
+    recs.push({
+      severity: "media",
+      title: "Ingresos dependientes de una única fuente",
+      detail: "Todo el dinero que entra depende de un solo origen. Si se interrumpiera, no habría red de respaldo inmediata. Plantéate una segunda fuente (freelance, alquiler, dividendos, renta pasiva) aunque sea pequeña al principio.",
+    });
+  }
+
+  if (accountBalances.length <= 1) {
+    recs.push({
+      severity: "media",
+      title: "Todo el dinero en una sola cuenta",
+      detail: "Separar el dinero en cuentas con un propósito claro (gastos del día a día, ahorro, inversión) ayuda a no gastarse por error lo que ya tenía un destino, aunque el banco sea el mismo.",
+    });
+  }
+
+  if (efProgress >= 1 && investmentTrackers(trackers).length === 0) {
+    recs.push({
+      severity: "media",
+      title: "Fondo de emergencia listo: toca invertir",
+      detail: "El fondo de emergencia ya cubre el objetivo. Dejar más dinero acumulado ahí de lo necesario pierde poder adquisitivo frente a la inflación. Es buen momento para dirigir el excedente a una inversión con un seguimiento propio.",
     });
   }
 

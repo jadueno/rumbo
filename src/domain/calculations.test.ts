@@ -3,6 +3,7 @@ import {
   balanceByAccount,
   buildRecommendations,
   currentEmergencyFundBalance,
+  currentNetWorth,
   deliberateSavingsAndInvestment,
   emergencyFundProgress,
   emergencyFundTarget,
@@ -409,13 +410,33 @@ describe("buildRecommendations", () => {
   }
 
   it("devuelve una recomendación de severidad baja cuando no hay señales de alerta", () => {
-    const { profile, trackers } = fullyHealthyProfile();
-    const accountBalances = [
-      { account: "Ahorro", income: 0, expenses: 0, transfersIn: 950, transfersOut: 0, balance: 950 },
-      { account: "Nomina", income: 3000, expenses: 1500, transfersIn: 0, transfersOut: 950, balance: 550 },
+    // Perfil diseñado para no disparar ninguna de las reglas: dos ingresos,
+    // varias cuentas, cashflow positivo, deuda baja, ahorro >=20%, fondo de
+    // emergencia completo con inversión también en marcha, y patrimonio
+    // (solo saldo inicial de los seguimientos, mes actual para que el
+    // devengo mensual no afecte al cálculo) por encima del 80% del recomendado.
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const profile = makeProfile({
+      age: 25,
+      incomes: [
+        { id: "1", account: "Nomina", label: "Salario", monthlyAmount: 2000 },
+        { id: "2", account: "Nomina", label: "Extra", monthlyAmount: 500 },
+      ],
+      expenses: [{ id: "1", group: "Fijos", account: "Nomina", label: "Gastos", monthlyAmount: 1500 }],
+      debts: [],
+      emergencyFund: { targetMonths: 3 },
+    });
+    const trackers: SavingsTracker[] = [
+      { id: "1", kind: "emergency_fund", name: "Fondo", account: "Ahorro", initialBalance: 5000, initialBalanceAsOf: currentMonth },
+      { id: "2", kind: "investment", name: "Cartera", account: "Inversion", initialBalance: 60000, initialBalanceAsOf: currentMonth },
     ];
-    const efTarget = 3 * 1500; // 4500
-    const recs = buildRecommendations(profile, efTarget, accountBalances, trackers);
+    const accountBalances = [
+      { account: "Nomina", income: 2500, expenses: 1500, transfersIn: 0, transfersOut: 600, balance: 400 },
+      { account: "Ahorro", income: 0, expenses: 0, transfersIn: 400, transfersOut: 0, balance: 400 },
+      { account: "Inversion", income: 0, expenses: 0, transfersIn: 200, transfersOut: 0, balance: 200 },
+    ];
+    const recs = buildRecommendations(profile, 4500, accountBalances, trackers);
     expect(recs).toEqual([
       { severity: "baja", title: "Salud financiera saludable", detail: expect.any(String) },
     ]);
@@ -476,6 +497,156 @@ describe("buildRecommendations", () => {
 
     const halfFull = buildRecommendations(profile, target * 0.6, accountBalances, trackers);
     expect(halfFull.find((r) => r.title === "Fondo de emergencia incompleto")?.severity).toBe("media");
+  });
+
+  it("avisa cuando el cashflow neto mensual es negativo", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 1000 }],
+      expenses: [{ id: "1", group: "Fijos", account: "Nomina", label: "Gastos", monthlyAmount: 1500 }],
+    });
+    const accountBalances = [
+      { account: "Nomina", income: 1000, expenses: 1500, transfersIn: 0, transfersOut: 0, balance: -500 },
+    ];
+    const recs = buildRecommendations(profile, 0, accountBalances, []);
+    const rec = recs.find((r) => r.title === "Gastas más de lo que ingresas");
+    expect(rec?.severity).toBe("alta");
+  });
+
+  it("avisa cuando el patrimonio actual está muy por debajo del recomendado para la edad", () => {
+    const profile = makeProfile({
+      age: 40,
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 3000 }],
+      expenses: [{ id: "1", group: "Fijos", account: "Nomina", label: "Gastos", monthlyAmount: 1500 }],
+    });
+    // recommendedNetWorth = 40 * 36000 / 10 = 144000; patrimonio real (0, sin seguimientos) muy por debajo.
+    const accountBalances = [
+      { account: "Nomina", income: 3000, expenses: 1500, transfersIn: 0, transfersOut: 0, balance: 1500 },
+    ];
+    const recs = buildRecommendations(profile, 0, accountBalances, []);
+    const rec = recs.find((r) => r.title === "Patrimonio por debajo de lo recomendado para tu edad");
+    expect(rec?.severity).toBe("alta");
+  });
+
+  it("no avisa de patrimonio bajo si ya está por encima del 80% del recomendado", () => {
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const profile = makeProfile({
+      age: 25,
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 1000 }],
+      expenses: [{ id: "1", group: "Fijos", account: "Nomina", label: "Gastos", monthlyAmount: 500 }],
+    });
+    // recommendedNetWorth = 25 * 12000 / 10 = 30000; con 30000 ya en el tracker se cubre el 100%.
+    const trackers: SavingsTracker[] = [
+      { id: "1", kind: "investment", name: "Cartera", account: "Inversion", initialBalance: 30000, initialBalanceAsOf: currentMonth },
+    ];
+    const accountBalances = [
+      { account: "Nomina", income: 1000, expenses: 500, transfersIn: 0, transfersOut: 0, balance: 500 },
+      { account: "Inversion", income: 0, expenses: 0, transfersIn: 0, transfersOut: 0, balance: 0 },
+    ];
+    const recs = buildRecommendations(profile, 0, accountBalances, trackers);
+    expect(recs.some((r) => r.title === "Patrimonio por debajo de lo recomendado para tu edad")).toBe(false);
+  });
+
+  it("avisa cuando hay más de una deuda activa a la vez", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 3000 }],
+      debts: [
+        { id: "1", name: "Coche", monthlyPayment: 100, dueDate: "2028-01" },
+        { id: "2", name: "Préstamo personal", monthlyPayment: 50, dueDate: "2027-01" },
+      ],
+    });
+    const recs = buildRecommendations(profile, 0, [], []);
+    expect(recs.some((r) => r.title === "Varias deudas activas a la vez")).toBe(true);
+  });
+
+  it("no avisa de varias deudas si solo hay una", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 3000 }],
+      debts: [{ id: "1", name: "Coche", monthlyPayment: 100, dueDate: "2028-01" }],
+    });
+    const recs = buildRecommendations(profile, 0, [], []);
+    expect(recs.some((r) => r.title === "Varias deudas activas a la vez")).toBe(false);
+  });
+
+  it("avisa cuando solo hay una fuente de ingresos", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 3000 }],
+    });
+    const recs = buildRecommendations(profile, 0, [], []);
+    expect(recs.some((r) => r.title === "Ingresos dependientes de una única fuente")).toBe(true);
+  });
+
+  it("no avisa de fuente única de ingresos si hay dos o más", () => {
+    const profile = makeProfile({
+      incomes: [
+        { id: "1", account: "Nomina", label: "Salario", monthlyAmount: 2000 },
+        { id: "2", account: "Nomina", label: "Freelance", monthlyAmount: 500 },
+      ],
+    });
+    const recs = buildRecommendations(profile, 0, [], []);
+    expect(recs.some((r) => r.title === "Ingresos dependientes de una única fuente")).toBe(false);
+  });
+
+  it("avisa cuando todo el dinero está en una sola cuenta", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 3000 }],
+    });
+    const accountBalances = [
+      { account: "Nomina", income: 3000, expenses: 0, transfersIn: 0, transfersOut: 0, balance: 3000 },
+    ];
+    const recs = buildRecommendations(profile, 0, accountBalances, []);
+    expect(recs.some((r) => r.title === "Todo el dinero en una sola cuenta")).toBe(true);
+  });
+
+  it("avisa para invertir cuando el fondo de emergencia ya está completo y no hay ningún tracker de inversión", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 3000 }],
+      expenses: [{ id: "1", group: "Fijos", account: "Nomina", label: "Gastos", monthlyAmount: 1000 }],
+      emergencyFund: { targetMonths: 3 },
+    });
+    const trackers: SavingsTracker[] = [
+      { id: "1", kind: "emergency_fund", name: "Fondo", account: "Ahorro", initialBalance: 0, initialBalanceAsOf: "2026-01" },
+    ];
+    const efTarget = emergencyFundTarget(profile); // 3000
+    const recs = buildRecommendations(profile, efTarget, [], trackers);
+    expect(recs.some((r) => r.title === "Fondo de emergencia listo: toca invertir")).toBe(true);
+  });
+
+  it("no avisa de invertir si ya existe algún tracker de inversión", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 3000 }],
+      expenses: [{ id: "1", group: "Fijos", account: "Nomina", label: "Gastos", monthlyAmount: 1000 }],
+      emergencyFund: { targetMonths: 3 },
+    });
+    const trackers: SavingsTracker[] = [
+      { id: "1", kind: "emergency_fund", name: "Fondo", account: "Ahorro", initialBalance: 0, initialBalanceAsOf: "2026-01" },
+      { id: "2", kind: "investment", name: "Cartera", account: "Inversion", initialBalance: 0, initialBalanceAsOf: "2026-01" },
+    ];
+    const efTarget = emergencyFundTarget(profile);
+    const recs = buildRecommendations(profile, efTarget, [], trackers);
+    expect(recs.some((r) => r.title === "Fondo de emergencia listo: toca invertir")).toBe(false);
+  });
+});
+
+describe("currentNetWorth", () => {
+  it("suma el saldo de todos los seguimientos y resta la deuda pendiente estimada", () => {
+    const profile = makeProfile({
+      debts: [{ id: "1", name: "Coche", monthlyPayment: 100, dueDate: "2028-01", remainingBalance: 2000, balanceAsOf: "2026-01" }],
+    });
+    const trackers: SavingsTracker[] = [
+      { id: "1", kind: "emergency_fund", name: "Fondo", account: "Ahorro", initialBalance: 3000, initialBalanceAsOf: "2026-01" },
+      { id: "2", kind: "investment", name: "Cartera", account: "Inversion", initialBalance: 5000, initialBalanceAsOf: "2026-01" },
+    ];
+    const accountBalances = [
+      { account: "Ahorro", income: 0, expenses: 0, transfersIn: 0, transfersOut: 0, balance: 0 },
+      { account: "Inversion", income: 0, expenses: 0, transfersIn: 0, transfersOut: 0, balance: 0 },
+    ];
+    const today = new Date(2026, 0, 15); // mismo mes que balanceAsOf/initialBalanceAsOf, 0 meses transcurridos
+    expect(currentNetWorth(profile, accountBalances, trackers, today)).toBe(3000 + 5000 - 2000);
+  });
+
+  it("es 0 sin seguimientos ni deuda", () => {
+    expect(currentNetWorth(makeProfile(), [], [], new Date())).toBe(0);
   });
 });
 
