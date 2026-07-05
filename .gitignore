@@ -29,3 +29,8 @@ backend/src/infrastructure/db/seed.ts
 
 # Credenciales locales
 .env
+
+# Backups locales de la base de datos: contienen datos financieros reales
+# (el README con instrucciones de restauración sí se versiona)
+backups/*.dump.gz
+backups/backup.log
