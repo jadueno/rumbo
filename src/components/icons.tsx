@@ -70,6 +70,20 @@ export function TipIcon(props: IconProps) {
   );
 }
 
+export function SimulatorIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M5 5v6" />
+      <circle cx="5" cy="13" r="2" />
+      <path d="M12 5v2" />
+      <circle cx="12" cy="9" r="2" />
+      <path d="M12 13v6" />
+      <path d="M19 5v10" />
+      <circle cx="19" cy="17" r="2" />
+    </svg>
+  );
+}
+
 export function DownloadIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>

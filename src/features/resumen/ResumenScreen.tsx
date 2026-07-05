@@ -6,6 +6,7 @@ import {
   deliberateSavingsAndInvestment,
   emergencyFundProgress,
   emergencyFundTarget,
+  financialHealthScore,
   formatEUR,
   netMonthlyCashflow,
   recommendedNetWorth,
@@ -17,6 +18,7 @@ import { BarComparison } from "../../components/BarComparison";
 import { ProgressBar } from "../../components/ProgressBar";
 import { RecommendationTimeline } from "../../components/RecommendationTimeline";
 import { IconBadge } from "../../components/IconBadge";
+import { FinancialHealthCard } from "../../components/FinancialHealthCard";
 import { ExpenseIcon, SavingsIcon, TipIcon } from "../../components/icons";
 
 export function ResumenScreen({
@@ -36,6 +38,7 @@ export function ResumenScreen({
   const efTarget = emergencyFundTarget(profile);
   const efBalance = currentEmergencyFundBalance(trackers, accountBalances);
   const efProgress = emergencyFundProgress(profile, efBalance);
+  const healthScore = financialHealthScore(profile, accountBalances, trackers, efBalance);
   const topRecommendations = buildRecommendations(profile, efBalance, accountBalances, trackers)
     .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
     .slice(0, 3);
@@ -82,6 +85,8 @@ export function ResumenScreen({
           )}
         </div>
       </div>
+
+      <FinancialHealthCard healthScore={healthScore} />
 
       <Card>
         <div className="mb-4 flex items-center gap-3">

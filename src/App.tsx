@@ -5,12 +5,13 @@ import { GastosScreen } from "./features/gastos/GastosScreen";
 import { DeudasScreen } from "./features/deudas/DeudasScreen";
 import { AhorroScreen } from "./features/ahorro/AhorroScreen";
 import { RecomendacionesScreen } from "./features/recomendaciones/RecomendacionesScreen";
-import { HomeIcon, ExpenseIcon, DebtIcon, SavingsIcon, TipIcon } from "./components/icons";
+import { SimuladorScreen } from "./features/simulador/SimuladorScreen";
+import { HomeIcon, ExpenseIcon, DebtIcon, SavingsIcon, TipIcon, SimulatorIcon } from "./components/icons";
 import { LoadingState } from "./components/LoadingState";
 import { BrandMark } from "./components/BrandMark";
 import { ExportDataButton } from "./components/ExportDataButton";
 
-type Section = "resumen" | "gastos" | "deudas" | "ahorro" | "recomendaciones";
+type Section = "resumen" | "gastos" | "deudas" | "ahorro" | "recomendaciones" | "simulador";
 
 const sections: {
   id: Section;
@@ -19,9 +20,10 @@ const sections: {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 }[] = [
   { id: "resumen", label: "Resumen", shortLabel: "Resumen", icon: HomeIcon },
-  { id: "gastos", label: "Ingresos y Gastos", shortLabel: "Ingresos/Gastos", icon: ExpenseIcon },
+  { id: "gastos", label: "Ingresos y Gastos", shortLabel: "Gastos", icon: ExpenseIcon },
   { id: "deudas", label: "Deudas", shortLabel: "Deudas", icon: DebtIcon },
   { id: "ahorro", label: "Ahorro", shortLabel: "Ahorro", icon: SavingsIcon },
+  { id: "simulador", label: "Simulador", shortLabel: "Simular", icon: SimulatorIcon },
   { id: "recomendaciones", label: "Recomendaciones", shortLabel: "Consejos", icon: TipIcon },
 ];
 
@@ -111,6 +113,9 @@ export default function App() {
                   onRemoveTracker={data.removeTracker}
                 />
               )}
+              {section === "simulador" && (
+                <SimuladorScreen profile={data.profile} accounts={data.accounts} trackers={data.trackers} />
+              )}
               {section === "recomendaciones" && (
                 <RecomendacionesScreen profile={data.profile} accounts={data.accounts} trackers={data.trackers} />
               )}
@@ -124,14 +129,14 @@ export default function App() {
         aria-label="Secciones de la app"
         className="fixed inset-x-0 bottom-0 z-10 pb-[env(safe-area-inset-bottom)] sm:hidden"
       >
-        <div className="mx-3 mb-3 flex justify-around rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-1)]/90 px-1 py-1.5 shadow-float backdrop-blur-md">
+        <div className="mx-2 mb-3 flex justify-around rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-1)]/90 px-0.5 py-1.5 shadow-float backdrop-blur-md">
           {sections.map((s) => (
             <button
               key={s.id}
               type="button"
               onClick={() => setSection(s.id)}
               aria-current={section === s.id ? "page" : undefined}
-              className={`flex flex-1 flex-col items-center gap-0.5 rounded-full px-1 py-1.5 text-[11px] font-semibold transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--series-income)] ${
+              className={`flex flex-1 flex-col items-center gap-0.5 rounded-full px-0.5 py-1.5 text-[10px] font-semibold whitespace-nowrap transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--series-income)] ${
                 section === s.id ? "bg-[var(--ink)] text-[var(--on-ink)]" : "text-[var(--text-muted)]"
               }`}
             >
