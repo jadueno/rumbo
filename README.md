@@ -83,12 +83,14 @@ Notas:
 - **Edad y estructura de cuentas de referencia**: config estática en `src/data/finances.ts` (ignorado por git, con `finances.example.ts` como plantilla) — no cambia con el día a día.
 - El **saldo pendiente de cada deuda** no se edita a mano: cada deuda guarda su saldo conocido y el mes al que corresponde (`balanceAsOf`), y la app resta una cuota por cada mes transcurrido desde entonces.
 - El **fondo de emergencia y las inversiones** (pantalla "Ahorro") funcionan igual que las deudas pero al revés: se vinculan a una cuenta y guardan un saldo de partida + el mes al que corresponde, y la app suma sola cada mes el balance neto de esa cuenta desde entonces. El fondo de emergencia es como mucho uno; las inversiones pueden ser varias, con su propio alta/baja.
+- El **score de salud financiera** (pantalla "Resumen") combina tasa de ahorro, carga de deuda, progreso del fondo de emergencia y dinero ocioso en un único número 0-100, con desglose explicado factor a factor.
+- El **simulador** (pantalla "Simulador") deja tocar ingresos, gastos y aportación extra a ahorro con sliders y ver el impacto en cashflow, tasa de ahorro y score al momento, sin guardar nada.
 
 ## Estructura
 
 - `src/domain/` — tipos y cálculos financieros puros (sin UI, sin red).
 - `src/data/` — `finances.ts` (config estática real, ignorado por git), `api.ts` + `useFinancialData.ts` (cliente HTTP y estado de la app).
-- `src/features/` — una pantalla por carpeta (resumen, gastos [ingresos+gastos+transferencias+cuentas], deudas, ahorro, recomendaciones), con sus formularios de alta.
+- `src/features/` — una pantalla por carpeta (resumen, gastos [ingresos+gastos+transferencias+cuentas], deudas, ahorro, simulador, recomendaciones), con sus formularios de alta.
 - `src/components/` — piezas de UI reutilizables (incluye `ConfirmProvider`, el modal de confirmación de borrados).
 - `backend/` — API en Node + TypeScript (Fastify) sobre Postgres, arquitectura hexagonal (`domain/` → `application/` → `infrastructure/`). Ver `backend/README.md`.
 - `docker-compose.yml` — Postgres local, puerto 5433.

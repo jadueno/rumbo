@@ -21,7 +21,7 @@ Frontend (React + TS)  ──HTTP/JSON──▶  Backend (Fastify + TS)  ──S
 | Base de datos | PostgreSQL en Docker (local) | Ver "Privacidad por diseño" más abajo — se descartó una BD gestionada en la nube a propósito |
 | Migraciones | `node-pg-migrate` | Migraciones versionadas en TypeScript en vez de SQL suelto o *sync* automático de esquema |
 | Sin ORM | Repositorios con `pg` + SQL explícito | El volumen de queries es pequeño y controlado; un ORM añadiría una capa de indirección sin beneficio claro aquí |
-| Sin router | Estado local en `App.tsx` | 5 pantallas, navegación por pestañas — una librería de rutas sería complejidad sin beneficio a este tamaño |
+| Sin router | Estado local en `App.tsx` | 6 pantallas, navegación por pestañas — una librería de rutas sería complejidad sin beneficio a este tamaño |
 
 ## Arquitectura hexagonal (backend)
 
@@ -46,7 +46,9 @@ Dos piezas de lógica destacables:
 
 - **Saldo de deuda sin input manual**: cada deuda guarda un saldo conocido y el mes al que corresponde (`balanceAsOf`). La función `estimatedRemainingBalance` resta una cuota por cada mes transcurrido desde entonces hasta hoy — el dato nunca queda desactualizado sin que el usuario tenga que acordarse de tocarlo cada mes.
 - **El mismo patrón, invertido, para fondo de emergencia e inversiones**: cada `SavingsTracker` se vincula a una cuenta y guarda un saldo de partida + el mes al que corresponde. En vez de restar una cuota fija (como la deuda), `estimatedTrackerBalance` suma, por cada mes transcurrido, el balance neto *actual* de la cuenta vinculada (`balanceByAccount(...).balance`: ingresos + transferencias entrantes − gastos − transferencias salientes) — reutilizando un cálculo que ya existía para otra pantalla, en vez de duplicar la lógica de "cuánto entra/sale de esta cuenta". Es una aproximación (asume que ese ritmo mensual se ha mantenido constante), igual que la de las deudas.
-- **Recomendaciones basadas en reglas, no en IA**: un motor de reglas simple (`buildRecommendations`) detecta señales concretas — dinero acumulado sin destino en cuentas corrientes, tasa de ahorro por debajo de un umbral, fondo de emergencia incompleto, carga de deuda alta — y las prioriza por severidad. Determinista y explicable, no una caja negra.
+- **Recomendaciones basadas en reglas, no en IA**: un motor de reglas (`buildRecommendations`) detecta señales concretas — dinero acumulado sin destino en cuentas corrientes, tasa de ahorro por debajo de un umbral, fondo de emergencia incompleto, carga de deuda alta, cashflow negativo, patrimonio por debajo del recomendado para la edad, varias deudas activas a la vez, ingresos o cuentas sin diversificar, fondo de emergencia completo sin ninguna inversión en marcha — y las prioriza por severidad. Determinista y explicable, no una caja negra.
+- **Score de salud financiera (0-100) explicable, no una caja negra**: `scoreFromMetrics`/`financialHealthScore` combinan tasa de ahorro, carga de deuda, progreso del fondo de emergencia y ratio de dinero ocioso en un único número mediante una media ponderada con pesos y umbrales fijos y documentados (los mismos umbrales que ya usa `buildRecommendations`, para que el score y las recomendaciones cuenten siempre la misma historia). Cada factor se muestra desglosado en la UI con su propia explicación, nunca solo el número final.
+- **Simulador "qué pasaría si..." sin tocar la base de datos**: `simulateAdjustments` reutiliza las mismas funciones puras de dominio sobre un perfil hipotético construido en memoria (ajustes de ingresos/gastos/aportación a ahorro), sin persistir nada. El fondo de emergencia y el ratio de dinero ocioso son saldos acumulados, no flujos mensuales, así que se mantienen fijos a propósito — proyectarlos hacia adelante es un problema distinto (histórico/evolución temporal), no este simulador.
 - **La tasa de ahorro se deriva de los seguimientos reales, no de una lista fija.** La primera versión de `savingsRate` tenía un nombre de cuenta de ahorro hardcodeado en el código y miraba un flag manual (`isSavingsOrInvestment`) en las transferencias — funcionaba, pero vivía desconectada de la funcionalidad real de seguimiento de fondo de emergencia/inversiones que se construyó después. Se refactorizó para que `deliberateSavingsAndInvestment`/`idleSurplus` calculen sobre el conjunto de cuentas que tienen un `SavingsTracker` vinculado en ese momento: lo que hay tracked es "deliberado", el resto con saldo positivo es "sin destino". Así la tasa se mantiene correcta aunque el usuario cree, borre o cambie de cuenta un seguimiento, sin tocar ningún dato de "configuración". El flag `isSavingsOrInvestment`, ya sin ningún consumidor, se acabó eliminando del todo (tipo, columna en Postgres vía migración, repositorio) en vez de dejarlo como dato muerto.
 
 ## Recalculado reactivo de extremo a extremo
@@ -100,6 +102,8 @@ docker-compose.yml  Postgres local
 
 ## Qué añadiría con más tiempo
 
-- Tests automatizados (unitarios sobre `domain/calculations.ts`, que ya está diseñado para eso al ser funciones puras; e2e con Playwright ya como suite en CI, no solo como scripts manuales de verificación).
+- Tests automatizados: hecho para `domain/calculations.ts` (funciones puras, ~65 tests con Vitest); pendiente e2e con Playwright como suite en CI, no solo como scripts manuales de verificación.
+- CI (lint + test + build en cada push): hecho, ver `.github/workflows/ci.yml`.
+- Backup automatizado de la base de datos (`pg_dump` diario vía launchd) y exportación bajo demanda desde la app (`GET /export` + botón): hecho.
+- Evolución histórica/gráficas en el tiempo: hoy todo el modelo son cantidades mensuales recurrentes sin fecha propia — el hueco funcional más grande pendiente.
 - Autenticación, si en algún momento deja de ser de un solo usuario.
-- CI (lint + typecheck + build en cada push).
