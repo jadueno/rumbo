@@ -9,12 +9,14 @@ import { createExpenseRepository } from "../db/repositories/expenseRepository.js
 import { createDebtRepository } from "../db/repositories/debtRepository.js";
 import { createTransferRepository } from "../db/repositories/transferRepository.js";
 import { createSavingsTrackerRepository } from "../db/repositories/savingsTrackerRepository.js";
+import { createPropertyRepository } from "../db/repositories/propertyRepository.js";
 import { createAccountUseCases } from "../../application/accounts.js";
 import { createIncomeUseCases } from "../../application/incomes.js";
 import { createExpenseUseCases } from "../../application/expenses.js";
 import { createDebtUseCases } from "../../application/debts.js";
 import { createTransferUseCases } from "../../application/transfers.js";
 import { createSavingsTrackerUseCases } from "../../application/savingsTrackers.js";
+import { createPropertyUseCases } from "../../application/properties.js";
 import { createExportUseCases } from "../../application/exportData.js";
 
 export async function buildServer(pool: Pool) {
@@ -29,6 +31,7 @@ export async function buildServer(pool: Pool) {
   const debtRepository = createDebtRepository(pool);
   const transferRepository = createTransferRepository(pool);
   const savingsTrackerRepository = createSavingsTrackerRepository(pool);
+  const propertyRepository = createPropertyRepository(pool);
 
   registerAccountRoutes(app, createAccountUseCases(accountRepository));
   registerCrudRoutes(app, "/incomes", createIncomeUseCases(incomeRepository));
@@ -36,6 +39,7 @@ export async function buildServer(pool: Pool) {
   registerCrudRoutes(app, "/debts", createDebtUseCases(debtRepository));
   registerCrudRoutes(app, "/transfers", createTransferUseCases(transferRepository));
   registerCrudRoutes(app, "/savings-trackers", createSavingsTrackerUseCases(savingsTrackerRepository));
+  registerCrudRoutes(app, "/properties", createPropertyUseCases(propertyRepository));
 
   const exportUseCases = createExportUseCases({
     accounts: accountRepository,
@@ -44,6 +48,7 @@ export async function buildServer(pool: Pool) {
     debts: debtRepository,
     transfers: transferRepository,
     savingsTrackers: savingsTrackerRepository,
+    properties: propertyRepository,
   });
   app.get("/export", async () => exportUseCases.exportAll());
 

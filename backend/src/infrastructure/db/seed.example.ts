@@ -1,6 +1,14 @@
 import "dotenv/config";
 import { pool } from "./pool.js";
-import type { NewAccount, NewDebt, NewExpense, NewIncome, NewSavingsTracker, NewTransfer } from "../../domain/types.js";
+import type {
+  NewAccount,
+  NewDebt,
+  NewExpense,
+  NewIncome,
+  NewProperty,
+  NewSavingsTracker,
+  NewTransfer,
+} from "../../domain/types.js";
 
 /**
  * Plantilla de ejemplo. Copia este archivo a `seed.ts` (ignorado por git)
@@ -9,8 +17,10 @@ import type { NewAccount, NewDebt, NewExpense, NewIncome, NewSavingsTracker, New
 const accounts: NewAccount[] = [{ name: "Cuenta Nómina" }, { name: "Cuenta Ahorro" }];
 
 const incomes: NewIncome[] = [
-  { account: "Cuenta Nómina", label: "Sueldo Neto mensual", monthlyAmount: 2000 },
+  { account: "Cuenta Nómina", label: "Sueldo Neto mensual", monthlyAmount: 2000, property: null },
 ];
+
+const properties: NewProperty[] = [{ name: "Piso alquilado", estimatedValue: 120000 }];
 
 const expenses: NewExpense[] = [
   { category: "Fijos", account: "Cuenta Nómina", property: null, label: "Alquiler", monthlyAmount: 700 },
@@ -36,18 +46,21 @@ const savingsTrackers: NewSavingsTracker[] = [
 ];
 
 async function seed() {
-  await pool.query("truncate accounts, incomes, expenses, debts, transfers, savings_trackers");
+  await pool.query("truncate accounts, incomes, expenses, debts, transfers, savings_trackers, properties");
 
   for (const a of accounts) {
     await pool.query("insert into accounts (name) values ($1)", [a.name]);
   }
 
   for (const i of incomes) {
-    await pool.query("insert into incomes (account, label, monthly_amount) values ($1, $2, $3)", [
-      i.account,
-      i.label,
-      i.monthlyAmount,
-    ]);
+    await pool.query(
+      "insert into incomes (account, label, monthly_amount, property) values ($1, $2, $3, $4)",
+      [i.account, i.label, i.monthlyAmount, i.property],
+    );
+  }
+
+  for (const p of properties) {
+    await pool.query("insert into properties (name, estimated_value) values ($1, $2)", [p.name, p.estimatedValue]);
   }
 
   for (const e of expenses) {

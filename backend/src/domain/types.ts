@@ -10,9 +10,19 @@ export interface Income {
   account: string;
   label: string;
   monthlyAmount: number;
+  /** Propiedad a la que corresponde este ingreso (p. ej. un alquiler), o null si no aplica. */
+  property: string | null;
 }
 
 export type NewIncome = Omit<Income, "id">;
+
+export interface Property {
+  id: string;
+  name: string;
+  estimatedValue: number;
+}
+
+export type NewProperty = Omit<Property, "id">;
 
 export type ExpenseCategory = "Fijos" | "Variables" | "Autónomo";
 
