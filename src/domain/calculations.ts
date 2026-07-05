@@ -1,4 +1,4 @@
-import type { Debt, FinancialProfile, SavingsTracker } from "./types";
+import type { Debt, FinancialProfile, Property, SavingsTracker } from "./types";
 
 export function totalMonthlyIncome(profile: FinancialProfile): number {
   return sum(profile.incomes.map((i) => i.monthlyAmount));
@@ -188,20 +188,57 @@ export function currentEmergencyFundBalance(
   return estimatedTrackerBalance(tracker, accountBalances, today);
 }
 
+export function totalPropertyValue(properties: Property[]): number {
+  return sum(properties.map((p) => p.estimatedValue));
+}
+
 /**
  * Patrimonio neto actual estimado: suma de todos los seguimientos de ahorro
- * e inversión (fondo de emergencia + inversiones) menos la deuda pendiente
- * estimada. Aproximado, igual que estimatedTrackerBalance y
- * totalEstimatedRemainingDebt: no incluye dinero en cuentas sin seguimiento.
+ * e inversión (fondo de emergencia + inversiones) más el valor estimado de
+ * las propiedades, menos la deuda pendiente estimada (incluida cualquier
+ * hipoteca, que se registra como una deuda más). El alquiler que puedan dar
+ * las propiedades no se suma aquí: es un flujo mensual, ya contado en los
+ * ingresos si se ha dado de alta como tal — sumarlo también al patrimonio
+ * sería contar el mismo dinero dos veces. Aproximado, igual que
+ * estimatedTrackerBalance y totalEstimatedRemainingDebt: no incluye dinero en
+ * cuentas sin seguimiento.
  */
 export function currentNetWorth(
   profile: FinancialProfile,
   accountBalances: AccountBalance[],
   trackers: SavingsTracker[],
+  properties: Property[],
   today: Date = new Date(),
 ): number {
   const trackedAssets = sum(trackers.map((t) => estimatedTrackerBalance(t, accountBalances, today)));
-  return trackedAssets - totalEstimatedRemainingDebt(profile, today);
+  return trackedAssets + totalPropertyValue(properties) - totalEstimatedRemainingDebt(profile, today);
+}
+
+export interface PropertyRentalProfit {
+  property: string;
+  income: number;
+  expenses: number;
+  /** income - expenses: puede ser negativo si la propiedad da pérdidas. */
+  net: number;
+}
+
+/**
+ * Beneficio neto mensual por propiedad: agrupa los ingresos y gastos que ya
+ * llevan esa propiedad etiquetada (mismo campo `property` que ya existía en
+ * los gastos, ahora también disponible en los ingresos). Puramente
+ * informativo — no se sustrae ni se suma a ningún otro cálculo, ya que ese
+ * dinero ya está contado en totalMonthlyIncome/totalMonthlyExpenses.
+ */
+export function rentalProfitByProperty(profile: FinancialProfile): PropertyRentalProfit[] {
+  const names = new Set<string>();
+  for (const i of profile.incomes) if (i.property) names.add(i.property);
+  for (const e of profile.expenses) if (e.property) names.add(e.property);
+
+  return Array.from(names).map((property) => {
+    const income = sum(profile.incomes.filter((i) => i.property === property).map((i) => i.monthlyAmount));
+    const expenses = sum(profile.expenses.filter((e) => e.property === property).map((e) => e.monthlyAmount));
+    return { property, income, expenses, net: income - expenses };
+  });
 }
 
 export interface Recommendation {
@@ -215,6 +252,7 @@ export function buildRecommendations(
   emergencyFundBalance: number,
   accountBalances: AccountBalance[],
   trackers: SavingsTracker[],
+  properties: Property[],
 ): Recommendation[] {
   const recs: Recommendation[] = [];
   const idle = idleSurplus(accountBalances, trackers);
@@ -272,13 +310,13 @@ export function buildRecommendations(
 
   const netWorthTarget = recommendedNetWorth(profile);
   if (netWorthTarget > 0) {
-    const netWorth = currentNetWorth(profile, accountBalances, trackers);
+    const netWorth = currentNetWorth(profile, accountBalances, trackers, properties);
     const netWorthProgress = netWorth / netWorthTarget;
     if (netWorthProgress < 0.8) {
       recs.push({
         severity: netWorthProgress < 0.5 ? "alta" : "media",
         title: "Patrimonio por debajo de lo recomendado para tu edad",
-        detail: `Tu patrimonio estimado (${formatEUR(netWorth)}, solo cuentas con seguimiento) está por debajo del recomendado para tu edad e ingresos (${formatEUR(netWorthTarget)}, edad × ingreso anual / 10). No es una carrera, pero conviene vigilar la tendencia.`,
+        detail: `Tu patrimonio estimado (${formatEUR(netWorth)}, seguimientos + propiedades menos deuda) está por debajo del recomendado para tu edad e ingresos (${formatEUR(netWorthTarget)}, edad × ingreso anual / 10). No es una carrera, pero conviene vigilar la tendencia.`,
       });
     }
   }

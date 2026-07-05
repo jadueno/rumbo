@@ -116,7 +116,12 @@ export function GastosScreen({
           {profile.incomes.map((income) => (
             <li key={income.id} className="flex items-center justify-between gap-3">
               <div className="text-sm">
-                <p className="font-medium text-[var(--text-primary)]">{income.label}</p>
+                <p className="font-medium text-[var(--text-primary)]">
+                  {income.label}
+                  {income.property && (
+                    <span className="ml-2 text-xs text-[var(--text-muted)]">({income.property})</span>
+                  )}
+                </p>
                 <p className="text-[var(--text-muted)]">{income.account}</p>
               </div>
               <div className="flex items-center gap-1.5">
@@ -131,6 +136,7 @@ export function GastosScreen({
                       account: income.account,
                       label: income.label,
                       monthlyAmount: Number(e.target.value),
+                      property: income.property,
                     })
                   }
                   className={`w-28 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-right text-sm tabular-nums text-[var(--text-primary)] ${focusRing}`}
@@ -263,7 +269,10 @@ export function GastosScreen({
                   <ul className="mt-4 flex flex-col gap-1 border-t border-[var(--gridline)] pt-3 text-sm">
                     {incomeItems.map((i) => (
                       <li key={i.id} className="flex items-center justify-between gap-2">
-                        <span className="text-[var(--text-secondary)]">{i.label}</span>
+                        <span className="text-[var(--text-secondary)]">
+                          {i.label}
+                          {i.property && <span className="ml-2 text-xs text-[var(--text-muted)]">({i.property})</span>}
+                        </span>
                         <span className="tabular-nums font-medium" style={{ color: "var(--series-income)" }}>
                           +{formatEUR(i.monthlyAmount)}
                         </span>

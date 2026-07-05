@@ -1,4 +1,4 @@
-import type { Account, FinancialProfile, SavingsTracker } from "../../domain/types";
+import type { Account, FinancialProfile, Property, SavingsTracker } from "../../domain/types";
 import { balanceByAccount, buildRecommendations, currentEmergencyFundBalance } from "../../domain/calculations";
 import { Card } from "../../components/Card";
 import { RecommendationTimeline } from "../../components/RecommendationTimeline";
@@ -9,14 +9,16 @@ export function RecomendacionesScreen({
   profile,
   accounts,
   trackers,
+  properties,
 }: {
   profile: FinancialProfile;
   accounts: Account[];
   trackers: SavingsTracker[];
+  properties: Property[];
 }) {
   const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
   const efBalance = currentEmergencyFundBalance(trackers, accountBalances);
-  const recommendations = [...buildRecommendations(profile, efBalance, accountBalances, trackers)].sort(
+  const recommendations = [...buildRecommendations(profile, efBalance, accountBalances, trackers, properties)].sort(
     (a, b) => severityRank[a.severity] - severityRank[b.severity],
   );
 

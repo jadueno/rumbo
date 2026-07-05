@@ -19,6 +19,7 @@ import {
   monthsElapsedSince,
   netMonthlyCashflow,
   recommendedNetWorth,
+  rentalProfitByProperty,
   savingsRate,
   scoreFromMetrics,
   simulateAdjustments,
@@ -26,8 +27,9 @@ import {
   totalMonthlyDebtPayments,
   totalMonthlyExpenses,
   totalMonthlyIncome,
+  totalPropertyValue,
 } from "./calculations";
-import type { Debt, FinancialProfile, SavingsTracker } from "./types";
+import type { Debt, FinancialProfile, Property, SavingsTracker } from "./types";
 
 function makeProfile(overrides: Partial<FinancialProfile> = {}): FinancialProfile {
   return {
@@ -436,7 +438,7 @@ describe("buildRecommendations", () => {
       { account: "Ahorro", income: 0, expenses: 0, transfersIn: 400, transfersOut: 0, balance: 400 },
       { account: "Inversion", income: 0, expenses: 0, transfersIn: 200, transfersOut: 0, balance: 200 },
     ];
-    const recs = buildRecommendations(profile, 4500, accountBalances, trackers);
+    const recs = buildRecommendations(profile, 4500, accountBalances, trackers, []);
     expect(recs).toEqual([
       { severity: "baja", title: "Salud financiera saludable", detail: expect.any(String) },
     ]);
@@ -447,7 +449,7 @@ describe("buildRecommendations", () => {
     const accountBalances = [
       { account: "Nomina", income: 3000, expenses: 1500, transfersIn: 0, transfersOut: 0, balance: 1500 },
     ];
-    const recs = buildRecommendations(profile, 4500, accountBalances, trackers);
+    const recs = buildRecommendations(profile, 4500, accountBalances, trackers, []);
     expect(recs.some((r) => r.title === "Dinero acumulándose sin destino")).toBe(true);
   });
 
@@ -458,14 +460,14 @@ describe("buildRecommendations", () => {
       { account: "Ahorro", income: 0, expenses: 0, transfersIn: 100, transfersOut: 0, balance: 100 },
       { account: "Nomina", income: 3000, expenses: 1500, transfersIn: 0, transfersOut: 100, balance: 1400 },
     ];
-    const lowRateRecs = buildRecommendations(profile, 4500, lowRateBalances, trackers);
+    const lowRateRecs = buildRecommendations(profile, 4500, lowRateBalances, trackers, []);
     expect(lowRateRecs.find((r) => r.title.includes("ahorro/inversión"))?.severity).toBe("alta");
 
     const mediumRateBalances = [
       { account: "Ahorro", income: 0, expenses: 0, transfersIn: 450, transfersOut: 0, balance: 450 },
       { account: "Nomina", income: 3000, expenses: 1500, transfersIn: 0, transfersOut: 450, balance: 1050 },
     ];
-    const mediumRateRecs = buildRecommendations(profile, 4500, mediumRateBalances, trackers);
+    const mediumRateRecs = buildRecommendations(profile, 4500, mediumRateBalances, trackers, []);
     expect(mediumRateRecs.find((r) => r.title.includes("ahorro/inversión"))?.severity).toBe("media");
   });
 
@@ -480,7 +482,7 @@ describe("buildRecommendations", () => {
     const accountBalances = [
       { account: "Nomina", income: 1000, expenses: 200, transfersIn: 0, transfersOut: 0, balance: 800 },
     ];
-    const recs = buildRecommendations(profile, 600, accountBalances, []);
+    const recs = buildRecommendations(profile, 600, accountBalances, [], []);
     expect(recs.some((r) => r.title === "Carga de deuda elevada")).toBe(true);
   });
 
@@ -492,10 +494,10 @@ describe("buildRecommendations", () => {
     ];
     const target = emergencyFundTarget(profile); // 4500
 
-    const almostEmpty = buildRecommendations(profile, target * 0.2, accountBalances, trackers);
+    const almostEmpty = buildRecommendations(profile, target * 0.2, accountBalances, trackers, []);
     expect(almostEmpty.find((r) => r.title === "Fondo de emergencia incompleto")?.severity).toBe("alta");
 
-    const halfFull = buildRecommendations(profile, target * 0.6, accountBalances, trackers);
+    const halfFull = buildRecommendations(profile, target * 0.6, accountBalances, trackers, []);
     expect(halfFull.find((r) => r.title === "Fondo de emergencia incompleto")?.severity).toBe("media");
   });
 
@@ -507,7 +509,7 @@ describe("buildRecommendations", () => {
     const accountBalances = [
       { account: "Nomina", income: 1000, expenses: 1500, transfersIn: 0, transfersOut: 0, balance: -500 },
     ];
-    const recs = buildRecommendations(profile, 0, accountBalances, []);
+    const recs = buildRecommendations(profile, 0, accountBalances, [], []);
     const rec = recs.find((r) => r.title === "Gastas más de lo que ingresas");
     expect(rec?.severity).toBe("alta");
   });
@@ -522,7 +524,7 @@ describe("buildRecommendations", () => {
     const accountBalances = [
       { account: "Nomina", income: 3000, expenses: 1500, transfersIn: 0, transfersOut: 0, balance: 1500 },
     ];
-    const recs = buildRecommendations(profile, 0, accountBalances, []);
+    const recs = buildRecommendations(profile, 0, accountBalances, [], []);
     const rec = recs.find((r) => r.title === "Patrimonio por debajo de lo recomendado para tu edad");
     expect(rec?.severity).toBe("alta");
   });
@@ -543,7 +545,7 @@ describe("buildRecommendations", () => {
       { account: "Nomina", income: 1000, expenses: 500, transfersIn: 0, transfersOut: 0, balance: 500 },
       { account: "Inversion", income: 0, expenses: 0, transfersIn: 0, transfersOut: 0, balance: 0 },
     ];
-    const recs = buildRecommendations(profile, 0, accountBalances, trackers);
+    const recs = buildRecommendations(profile, 0, accountBalances, trackers, []);
     expect(recs.some((r) => r.title === "Patrimonio por debajo de lo recomendado para tu edad")).toBe(false);
   });
 
@@ -555,7 +557,7 @@ describe("buildRecommendations", () => {
         { id: "2", name: "Préstamo personal", monthlyPayment: 50, dueDate: "2027-01" },
       ],
     });
-    const recs = buildRecommendations(profile, 0, [], []);
+    const recs = buildRecommendations(profile, 0, [], [], []);
     expect(recs.some((r) => r.title === "Varias deudas activas a la vez")).toBe(true);
   });
 
@@ -564,7 +566,7 @@ describe("buildRecommendations", () => {
       incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 3000 }],
       debts: [{ id: "1", name: "Coche", monthlyPayment: 100, dueDate: "2028-01" }],
     });
-    const recs = buildRecommendations(profile, 0, [], []);
+    const recs = buildRecommendations(profile, 0, [], [], []);
     expect(recs.some((r) => r.title === "Varias deudas activas a la vez")).toBe(false);
   });
 
@@ -572,7 +574,7 @@ describe("buildRecommendations", () => {
     const profile = makeProfile({
       incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 3000 }],
     });
-    const recs = buildRecommendations(profile, 0, [], []);
+    const recs = buildRecommendations(profile, 0, [], [], []);
     expect(recs.some((r) => r.title === "Ingresos dependientes de una única fuente")).toBe(true);
   });
 
@@ -583,7 +585,7 @@ describe("buildRecommendations", () => {
         { id: "2", account: "Nomina", label: "Freelance", monthlyAmount: 500 },
       ],
     });
-    const recs = buildRecommendations(profile, 0, [], []);
+    const recs = buildRecommendations(profile, 0, [], [], []);
     expect(recs.some((r) => r.title === "Ingresos dependientes de una única fuente")).toBe(false);
   });
 
@@ -594,7 +596,7 @@ describe("buildRecommendations", () => {
     const accountBalances = [
       { account: "Nomina", income: 3000, expenses: 0, transfersIn: 0, transfersOut: 0, balance: 3000 },
     ];
-    const recs = buildRecommendations(profile, 0, accountBalances, []);
+    const recs = buildRecommendations(profile, 0, accountBalances, [], []);
     expect(recs.some((r) => r.title === "Todo el dinero en una sola cuenta")).toBe(true);
   });
 
@@ -608,7 +610,7 @@ describe("buildRecommendations", () => {
       { id: "1", kind: "emergency_fund", name: "Fondo", account: "Ahorro", initialBalance: 0, initialBalanceAsOf: "2026-01" },
     ];
     const efTarget = emergencyFundTarget(profile); // 3000
-    const recs = buildRecommendations(profile, efTarget, [], trackers);
+    const recs = buildRecommendations(profile, efTarget, [], trackers, []);
     expect(recs.some((r) => r.title === "Fondo de emergencia listo: toca invertir")).toBe(true);
   });
 
@@ -623,13 +625,13 @@ describe("buildRecommendations", () => {
       { id: "2", kind: "investment", name: "Cartera", account: "Inversion", initialBalance: 0, initialBalanceAsOf: "2026-01" },
     ];
     const efTarget = emergencyFundTarget(profile);
-    const recs = buildRecommendations(profile, efTarget, [], trackers);
+    const recs = buildRecommendations(profile, efTarget, [], trackers, []);
     expect(recs.some((r) => r.title === "Fondo de emergencia listo: toca invertir")).toBe(false);
   });
 });
 
 describe("currentNetWorth", () => {
-  it("suma el saldo de todos los seguimientos y resta la deuda pendiente estimada", () => {
+  it("suma el saldo de todos los seguimientos y el valor de las propiedades, y resta la deuda pendiente estimada", () => {
     const profile = makeProfile({
       debts: [{ id: "1", name: "Coche", monthlyPayment: 100, dueDate: "2028-01", remainingBalance: 2000, balanceAsOf: "2026-01" }],
     });
@@ -637,16 +639,79 @@ describe("currentNetWorth", () => {
       { id: "1", kind: "emergency_fund", name: "Fondo", account: "Ahorro", initialBalance: 3000, initialBalanceAsOf: "2026-01" },
       { id: "2", kind: "investment", name: "Cartera", account: "Inversion", initialBalance: 5000, initialBalanceAsOf: "2026-01" },
     ];
+    const properties: Property[] = [{ id: "1", name: "Piso", estimatedValue: 120000 }];
     const accountBalances = [
       { account: "Ahorro", income: 0, expenses: 0, transfersIn: 0, transfersOut: 0, balance: 0 },
       { account: "Inversion", income: 0, expenses: 0, transfersIn: 0, transfersOut: 0, balance: 0 },
     ];
     const today = new Date(2026, 0, 15); // mismo mes que balanceAsOf/initialBalanceAsOf, 0 meses transcurridos
-    expect(currentNetWorth(profile, accountBalances, trackers, today)).toBe(3000 + 5000 - 2000);
+    expect(currentNetWorth(profile, accountBalances, trackers, properties, today)).toBe(3000 + 5000 + 120000 - 2000);
   });
 
-  it("es 0 sin seguimientos ni deuda", () => {
-    expect(currentNetWorth(makeProfile(), [], [], new Date())).toBe(0);
+  it("es 0 sin seguimientos, propiedades ni deuda", () => {
+    expect(currentNetWorth(makeProfile(), [], [], [], new Date())).toBe(0);
+  });
+});
+
+describe("totalPropertyValue", () => {
+  it("suma el valor estimado de todas las propiedades", () => {
+    const properties: Property[] = [
+      { id: "1", name: "Piso Riviera", estimatedValue: 120000 },
+      { id: "2", name: "Piso Villamuriel", estimatedValue: 90000 },
+    ];
+    expect(totalPropertyValue(properties)).toBe(210000);
+  });
+
+  it("es 0 sin propiedades", () => {
+    expect(totalPropertyValue([])).toBe(0);
+  });
+});
+
+describe("rentalProfitByProperty", () => {
+  it("agrupa ingresos y gastos etiquetados con la misma propiedad y calcula el neto", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Ahorro", label: "Alquiler Riviera", monthlyAmount: 1200, property: "Riviera" }],
+      expenses: [
+        { id: "1", group: "Fijos", account: "Nomina", label: "Hipoteca", monthlyAmount: 400, property: "Riviera" },
+        { id: "2", group: "Fijos", account: "Nomina", label: "Comunidad", monthlyAmount: 60, property: "Riviera" },
+      ],
+    });
+    const result = rentalProfitByProperty(profile);
+    expect(result).toEqual([{ property: "Riviera", income: 1200, expenses: 460, net: 740 }]);
+  });
+
+  it("puede dar beneficio negativo si los gastos superan al ingreso", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Ahorro", label: "Alquiler", monthlyAmount: 300, property: "Villamuriel" }],
+      expenses: [
+        { id: "1", group: "Fijos", account: "Nomina", label: "Hipoteca", monthlyAmount: 650, property: "Villamuriel" },
+      ],
+    });
+    const result = rentalProfitByProperty(profile);
+    expect(result.find((p) => p.property === "Villamuriel")?.net).toBe(-350);
+  });
+
+  it("ignora ingresos y gastos sin propiedad etiquetada", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 3000 }],
+      expenses: [{ id: "1", group: "Fijos", account: "Nomina", label: "Gastos generales", monthlyAmount: 500 }],
+    });
+    expect(rentalProfitByProperty(profile)).toEqual([]);
+  });
+
+  it("no mezcla ingresos/gastos de propiedades distintas", () => {
+    const profile = makeProfile({
+      incomes: [
+        { id: "1", account: "A", label: "Alquiler Riviera", monthlyAmount: 1200, property: "Riviera" },
+        { id: "2", account: "A", label: "Alquiler Villamuriel", monthlyAmount: 300, property: "Villamuriel" },
+      ],
+      expenses: [
+        { id: "1", group: "Fijos", account: "A", label: "Hipoteca Riviera", monthlyAmount: 400, property: "Riviera" },
+      ],
+    });
+    const result = rentalProfitByProperty(profile);
+    expect(result.find((p) => p.property === "Riviera")).toEqual({ property: "Riviera", income: 1200, expenses: 400, net: 800 });
+    expect(result.find((p) => p.property === "Villamuriel")).toEqual({ property: "Villamuriel", income: 300, expenses: 0, net: 300 });
   });
 });
 

@@ -1,8 +1,9 @@
-import type { Account, FinancialProfile, SavingsTracker } from "../../domain/types";
+import type { Account, FinancialProfile, Property, SavingsTracker } from "../../domain/types";
 import {
   balanceByAccount,
   buildRecommendations,
   currentEmergencyFundBalance,
+  currentNetWorth,
   deliberateSavingsAndInvestment,
   emergencyFundProgress,
   emergencyFundTarget,
@@ -25,10 +26,12 @@ export function ResumenScreen({
   profile,
   accounts,
   trackers,
+  properties,
 }: {
   profile: FinancialProfile;
   accounts: Account[];
   trackers: SavingsTracker[];
+  properties: Property[];
 }) {
   const income = totalMonthlyIncome(profile);
   const expenses = totalMonthlyExpenses(profile);
@@ -39,7 +42,9 @@ export function ResumenScreen({
   const efBalance = currentEmergencyFundBalance(trackers, accountBalances);
   const efProgress = emergencyFundProgress(profile, efBalance);
   const healthScore = financialHealthScore(profile, accountBalances, trackers, efBalance);
-  const topRecommendations = buildRecommendations(profile, efBalance, accountBalances, trackers)
+  const netWorth = currentNetWorth(profile, accountBalances, trackers, properties);
+  const netWorthTarget = recommendedNetWorth(profile);
+  const topRecommendations = buildRecommendations(profile, efBalance, accountBalances, trackers, properties)
     .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
     .slice(0, 3);
 
@@ -112,17 +117,29 @@ export function ResumenScreen({
         <Card>
           <div className="flex items-center gap-3">
             <IconBadge icon={TipIcon} tone="violet" size="sm" />
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Patrimonio neto recomendado</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Patrimonio neto</h2>
           </div>
           <p className="mt-2 text-xs text-[var(--text-muted)]">
-            Según tu edad ({profile.age} años) e ingresos anuales
+            Actual: seguimientos de ahorro/inversión + propiedades − deuda pendiente
           </p>
-          <p className="mt-3 text-2xl font-extrabold tabular-nums text-[var(--text-primary)]">
-            {formatEUR(recommendedNetWorth(profile))}
+          <p className="mt-1 text-2xl font-extrabold tabular-nums text-[var(--text-primary)]">
+            {formatEUR(netWorth)}
           </p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Fórmula de referencia: edad × ingreso anual / 10
-          </p>
+          {netWorthTarget > 0 && (
+            <>
+              <div className="mt-3">
+                <ProgressBar
+                  progress={netWorth / netWorthTarget}
+                  color={netWorth >= netWorthTarget ? "var(--status-good)" : "var(--series-violet)"}
+                  label={`Patrimonio: ${Math.round((netWorth / netWorthTarget) * 100)}% del recomendado para tu edad`}
+                />
+              </div>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
+                {Math.round((netWorth / netWorthTarget) * 100)}% de {formatEUR(netWorthTarget)} recomendado para tu
+                edad ({profile.age} años) e ingresos anuales (edad × ingreso anual / 10)
+              </p>
+            </>
+          )}
         </Card>
       </div>
 

@@ -10,6 +10,8 @@ export interface IncomeSource {
   account: string;
   label: string;
   monthlyAmount: number;
+  /** Propiedad a la que corresponde este ingreso (p. ej. un alquiler), si aplica. */
+  property?: string;
 }
 
 export type NewIncomeSource = Omit<IncomeSource, "id">;
@@ -72,6 +74,15 @@ export type NewDebt = Omit<Debt, "id">;
 export interface EmergencyFund {
   targetMonths: number;
 }
+
+export interface Property {
+  id: string;
+  name: string;
+  /** Valor estimado de mercado, no un cálculo automático. */
+  estimatedValue: number;
+}
+
+export type NewProperty = Omit<Property, "id">;
 
 export interface FinancialProfile {
   age: number;

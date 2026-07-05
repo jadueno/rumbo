@@ -13,6 +13,7 @@ export function AddIncomeForm({
   onCancel: () => void;
 }) {
   const [account, setAccount] = useState(accountNames[0] ?? "");
+  const [property, setProperty] = useState("");
   const [label, setLabel] = useState("");
   const [monthlyAmount, setMonthlyAmount] = useState<number | "">("");
   const [submitting, setSubmitting] = useState(false);
@@ -26,7 +27,7 @@ export function AddIncomeForm({
         setSubmitting(true);
         setError(null);
         try {
-          await onSubmit({ account, label, monthlyAmount: Number(monthlyAmount) });
+          await onSubmit({ account, label, monthlyAmount: Number(monthlyAmount), property: property || undefined });
           onCancel();
         } catch (err) {
           setError(err instanceof Error ? err.message : "No se ha podido guardar el ingreso");
@@ -71,6 +72,9 @@ export function AddIncomeForm({
             onChange={(e) => setMonthlyAmount(e.target.value === "" ? "" : Number(e.target.value))}
             className={inputClass}
           />
+        </Field>
+        <Field label="Propiedad (opcional, p. ej. un alquiler)">
+          <input value={property} onChange={(e) => setProperty(e.target.value)} className={inputClass} />
         </Field>
       </div>
       {error && (

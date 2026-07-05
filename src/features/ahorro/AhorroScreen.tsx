@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Account, FinancialProfile, NewSavingsTracker, SavingsTracker } from "../../domain/types";
+import type { Account, FinancialProfile, NewProperty, NewSavingsTracker, Property, SavingsTracker } from "../../domain/types";
 import {
   balanceByAccount,
   currentEmergencyFundBalance,
@@ -9,39 +9,52 @@ import {
   formatEUR,
   formatMonth,
   investmentTrackers,
+  rentalProfitByProperty,
   savingsRate,
+  totalPropertyValue,
 } from "../../domain/calculations";
 import { Card } from "../../components/Card";
 import { Button } from "../../components/Button";
 import { IconBadge } from "../../components/IconBadge";
-import { SavingsIcon, IncomeIcon } from "../../components/icons";
+import { SavingsIcon, IncomeIcon, HomeIcon } from "../../components/icons";
 import { focusRing } from "../../components/Field";
 import { ProgressBar } from "../../components/ProgressBar";
 import { useConfirm } from "../../components/ConfirmProvider";
 import { SetupEmergencyFundForm } from "./SetupEmergencyFundForm";
 import { AddInvestmentForm } from "./AddInvestmentForm";
 import { EditTrackerForm } from "./EditTrackerForm";
+import { PropertyForm } from "./PropertyForm";
 
 interface Props {
   profile: FinancialProfile;
   accounts: Account[];
   trackers: SavingsTracker[];
+  properties: Property[];
   onAddTracker: (tracker: NewSavingsTracker) => Promise<void>;
   onUpdateTracker: (id: string, tracker: NewSavingsTracker) => Promise<void>;
   onRemoveTracker: (id: string) => Promise<void>;
+  onAddProperty: (property: NewProperty) => Promise<void>;
+  onUpdateProperty: (id: string, property: NewProperty) => Promise<void>;
+  onRemoveProperty: (id: string) => Promise<void>;
 }
 
 export function AhorroScreen({
   profile,
   accounts,
   trackers,
+  properties,
   onAddTracker,
   onUpdateTracker,
   onRemoveTracker,
+  onAddProperty,
+  onUpdateProperty,
+  onRemoveProperty,
 }: Props) {
   const confirm = useConfirm();
   const [showAddInvestment, setShowAddInvestment] = useState(false);
   const [editingTrackerId, setEditingTrackerId] = useState<string | null>(null);
+  const [showAddProperty, setShowAddProperty] = useState(false);
+  const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
 
   const accountNames = accounts.map((a) => a.name);
   const accountBalances = balanceByAccount(profile, accountNames);
@@ -53,10 +66,17 @@ export function AhorroScreen({
   const efProgress = efTarget > 0 ? Math.min(1, efBalance / efTarget) : 1;
 
   const investments = investmentTrackers(trackers);
+  const rentalProfits = rentalProfitByProperty(profile);
 
   async function handleRemoveTracker(name: string, id: string) {
     if (await confirm(`¿Dejar de seguir "${name}"? El histórico no se guarda, solo la configuración.`)) {
       await onRemoveTracker(id);
+    }
+  }
+
+  async function handleRemoveProperty(name: string, id: string) {
+    if (await confirm(`¿Eliminar la propiedad "${name}"? Esta acción no se puede deshacer.`)) {
+      await onRemoveProperty(id);
     }
   }
 
@@ -215,6 +235,87 @@ export function AhorroScreen({
               );
             })}
           </div>
+        )}
+      </Card>
+
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <IconBadge icon={HomeIcon} tone="expense" size="sm" />
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Propiedades</h2>
+          </div>
+          <Button tone="ink" size="sm" onClick={() => setShowAddProperty((v) => !v)}>
+            {showAddProperty ? "Cancelar" : "+ Añadir propiedad"}
+          </Button>
+        </div>
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
+          Su valor de mercado suma a tu patrimonio. Si dan alquiler, etiqueta el ingreso con el mismo nombre de
+          propiedad (en "Ingresos y Gastos") para ver aquí el beneficio neto — esa renta ya cuenta como ingreso
+          normal, no se vuelve a sumar al patrimonio.
+        </p>
+
+        {showAddProperty && <PropertyForm onSubmit={onAddProperty} onCancel={() => setShowAddProperty(false)} />}
+
+        {properties.length === 0 ? (
+          <p className="mt-4 text-sm text-[var(--text-muted)]">Aún no tienes propiedades registradas.</p>
+        ) : (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {properties.map((property) => {
+              const profit = rentalProfits.find((p) => p.property === property.name);
+              return (
+                <div key={property.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-semibold text-[var(--text-primary)]">{property.name}</h3>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setEditingPropertyId((v) => (v === property.id ? null : property.id))}
+                        className={`rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] hover:text-[var(--text-primary)] ${focusRing}`}
+                      >
+                        {editingPropertyId === property.id ? "Cerrar" : "Editar"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveProperty(property.name, property.id)}
+                        aria-label={`Eliminar propiedad ${property.name}`}
+                        className={`rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] hover:text-[var(--status-critical)] ${focusRing}`}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xl font-bold tabular-nums text-[var(--text-primary)]">
+                    {formatEUR(property.estimatedValue)}
+                  </p>
+                  <p className="text-xs text-[var(--text-muted)]">Valor estimado de mercado</p>
+                  {profit && (
+                    <p
+                      className="mt-2 text-sm font-medium"
+                      style={{ color: profit.net >= 0 ? "var(--series-savings)" : "var(--status-critical)" }}
+                    >
+                      Alquiler neto: {profit.net >= 0 ? "+" : ""}
+                      {formatEUR(profit.net)}/mes ({formatEUR(profit.income)} ingreso − {formatEUR(profit.expenses)}{" "}
+                      gastos)
+                    </p>
+                  )}
+                  {editingPropertyId === property.id && (
+                    <PropertyForm
+                      initial={property}
+                      onSubmit={(entity) => onUpdateProperty(property.id, entity)}
+                      onCancel={() => setEditingPropertyId(null)}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {properties.length > 0 && (
+          <p className="mt-4 text-sm text-[var(--text-secondary)]">
+            Valor total de propiedades:{" "}
+            <strong className="font-bold text-[var(--text-primary)]">{formatEUR(totalPropertyValue(properties))}</strong>
+          </p>
         )}
       </Card>
 

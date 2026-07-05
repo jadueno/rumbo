@@ -1,5 +1,15 @@
 import type { Debt, ExpenseItem, IncomeSource, NewDebt, NewExpenseItem, NewIncomeSource, NewTransfer, Transfer } from "../domain/types";
 
+export interface ApiIncome {
+  id: string;
+  account: string;
+  label: string;
+  monthlyAmount: number;
+  property: string | null;
+}
+
+export type NewApiIncome = Omit<ApiIncome, "id">;
+
 // El backend usa "category" (no "group", palabra reservada en SQL) y null en vez de undefined.
 
 export interface ApiExpense {
@@ -53,8 +63,14 @@ export function toApiDebt(d: NewDebt): NewApiDebt {
   };
 }
 
-// Income y Transfer tienen exactamente la misma forma en API y dominio.
-export type ApiIncome = IncomeSource;
-export type NewApiIncome = NewIncomeSource;
+export function toIncomeSource(i: ApiIncome): IncomeSource {
+  return { id: i.id, account: i.account, label: i.label, monthlyAmount: i.monthlyAmount, property: i.property ?? undefined };
+}
+
+export function toApiIncome(i: NewIncomeSource): NewApiIncome {
+  return { account: i.account, label: i.label, monthlyAmount: i.monthlyAmount, property: i.property ?? null };
+}
+
+// Transfer tiene exactamente la misma forma en API y dominio.
 export type ApiTransfer = Transfer;
 export type NewApiTransfer = NewTransfer;

@@ -83,7 +83,12 @@ export default function App() {
           {data.profile && (
             <>
               {section === "resumen" && (
-                <ResumenScreen profile={data.profile} accounts={data.accounts} trackers={data.trackers} />
+                <ResumenScreen
+                  profile={data.profile}
+                  accounts={data.accounts}
+                  trackers={data.trackers}
+                  properties={data.properties}
+                />
               )}
               {section === "gastos" && (
                 <GastosScreen
@@ -108,16 +113,25 @@ export default function App() {
                   profile={data.profile}
                   accounts={data.accounts}
                   trackers={data.trackers}
+                  properties={data.properties}
                   onAddTracker={data.addTracker}
                   onUpdateTracker={data.updateTracker}
                   onRemoveTracker={data.removeTracker}
+                  onAddProperty={data.addProperty}
+                  onUpdateProperty={data.updateProperty}
+                  onRemoveProperty={data.removeProperty}
                 />
               )}
               {section === "simulador" && (
                 <SimuladorScreen profile={data.profile} accounts={data.accounts} trackers={data.trackers} />
               )}
               {section === "recomendaciones" && (
-                <RecomendacionesScreen profile={data.profile} accounts={data.accounts} trackers={data.trackers} />
+                <RecomendacionesScreen
+                  profile={data.profile}
+                  accounts={data.accounts}
+                  trackers={data.trackers}
+                  properties={data.properties}
+                />
               )}
             </>
           )}
