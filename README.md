@@ -6,6 +6,14 @@ App personal (un solo usuario) para ver de un vistazo cómo va tu economía: ing
 
 📐 Si te interesa la arquitectura, las decisiones técnicas y los bugs reales encontrados durante el desarrollo, están en **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
+## Capturas
+
+Datos ficticios de ejemplo, no los reales del dueño de la app.
+
+| Resumen (escritorio) | Ingresos y gastos (escritorio) | Resumen (móvil) |
+| --- | --- | --- |
+| ![Resumen](docs/screenshots/resumen-desktop.png) | ![Ingresos y gastos](docs/screenshots/gastos-desktop.png) | ![Resumen en móvil](docs/screenshots/resumen-movil.png) |
+
 ## Configuración inicial (solo la primera vez)
 
 Necesitas Node.js, npm y Docker instalados.
