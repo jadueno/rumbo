@@ -15,6 +15,7 @@ import { createExpenseUseCases } from "../../application/expenses.js";
 import { createDebtUseCases } from "../../application/debts.js";
 import { createTransferUseCases } from "../../application/transfers.js";
 import { createSavingsTrackerUseCases } from "../../application/savingsTrackers.js";
+import { createExportUseCases } from "../../application/exportData.js";
 
 export async function buildServer(pool: Pool) {
   const app = Fastify({ logger: true });
@@ -22,16 +23,29 @@ export async function buildServer(pool: Pool) {
 
   app.get("/health", async () => ({ status: "ok" }));
 
-  registerAccountRoutes(app, createAccountUseCases(createAccountRepository(pool)));
-  registerCrudRoutes(app, "/incomes", createIncomeUseCases(createIncomeRepository(pool)));
-  registerCrudRoutes(app, "/expenses", createExpenseUseCases(createExpenseRepository(pool)));
-  registerCrudRoutes(app, "/debts", createDebtUseCases(createDebtRepository(pool)));
-  registerCrudRoutes(app, "/transfers", createTransferUseCases(createTransferRepository(pool)));
-  registerCrudRoutes(
-    app,
-    "/savings-trackers",
-    createSavingsTrackerUseCases(createSavingsTrackerRepository(pool)),
-  );
+  const accountRepository = createAccountRepository(pool);
+  const incomeRepository = createIncomeRepository(pool);
+  const expenseRepository = createExpenseRepository(pool);
+  const debtRepository = createDebtRepository(pool);
+  const transferRepository = createTransferRepository(pool);
+  const savingsTrackerRepository = createSavingsTrackerRepository(pool);
+
+  registerAccountRoutes(app, createAccountUseCases(accountRepository));
+  registerCrudRoutes(app, "/incomes", createIncomeUseCases(incomeRepository));
+  registerCrudRoutes(app, "/expenses", createExpenseUseCases(expenseRepository));
+  registerCrudRoutes(app, "/debts", createDebtUseCases(debtRepository));
+  registerCrudRoutes(app, "/transfers", createTransferUseCases(transferRepository));
+  registerCrudRoutes(app, "/savings-trackers", createSavingsTrackerUseCases(savingsTrackerRepository));
+
+  const exportUseCases = createExportUseCases({
+    accounts: accountRepository,
+    incomes: incomeRepository,
+    expenses: expenseRepository,
+    debts: debtRepository,
+    transfers: transferRepository,
+    savingsTrackers: savingsTrackerRepository,
+  });
+  app.get("/export", async () => exportUseCases.exportAll());
 
   return app;
 }
