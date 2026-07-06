@@ -5,14 +5,14 @@
   Job de launchd que ejecuta scripts/backup-db.sh una vez al día.
 
   Este fichero es la PLANTILLA que vive en el repo. La copia realmente
-  instalada está en ~/Library/LaunchAgents/com.saludfinanciera.dbbackup.plist
+  instalada está en ~/Library/LaunchAgents/com.rumbo.dbbackup.plist
   (fuera del repo, con la ruta absoluta del usuario). Instálala/actualízala
   con scripts/install-backup-schedule.sh.
 -->
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.saludfinanciera.dbbackup</string>
+  <string>com.rumbo.dbbackup</string>
 
   <key>ProgramArguments</key>
   <array>

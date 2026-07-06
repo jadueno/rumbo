@@ -15,7 +15,7 @@
 # Uso manual:
 #   ./scripts/backup-db.sh
 #
-# Programación automática: ver scripts/com.saludfinanciera.backup.plist
+# Programación automática: ver scripts/com.rumbo.dbbackup.plist
 # (launchd), instalado con scripts/install-backup-schedule.sh
 #
 # --- RESTAURAR UN DUMP (referencia rápida) ---

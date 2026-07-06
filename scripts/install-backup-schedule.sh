@@ -10,8 +10,8 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TEMPLATE="$PROJECT_DIR/scripts/com.saludfinanciera.dbbackup.plist"
-LABEL="com.saludfinanciera.dbbackup"
+TEMPLATE="$PROJECT_DIR/scripts/com.rumbo.dbbackup.plist"
+LABEL="com.rumbo.dbbackup"
 PLIST_DEST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 UID_NUM="$(id -u)"
 

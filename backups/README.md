@@ -9,7 +9,7 @@ Esta carpeta contiene dumps de Postgres generados por `../scripts/backup-db.sh`.
 - Script: `scripts/backup-db.sh`
 - Formato: `pg_dump -Fc` (formato "custom" de Postgres), comprimido después con
   gzip → ficheros `salud_financiera_<fecha>_<hora>.dump.gz`
-- Programación: `launchd` (ver `scripts/com.saludfinanciera.dbbackup.plist`),
+- Programación: `launchd` (ver `scripts/com.rumbo.dbbackup.plist`),
   se ejecuta una vez al día.
 - Retención: se borran automáticamente los dumps con más de 14 días
   (variable `RETENTION_DAYS` en el script).
