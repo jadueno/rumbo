@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import type { Pool } from "pg";
 import { registerAuth } from "./auth.js";
 import { registerCrudRoutes } from "./crudRoutes.js";
@@ -24,6 +25,9 @@ import { createSnapshotUseCases } from "../../application/snapshots.js";
 export async function buildServer(pool: Pool, options: { logger?: boolean; apiToken?: string } = {}) {
   const app = Fastify({ logger: options.logger ?? true });
   await app.register(cors, { origin: true, methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"] });
+  // Límite generoso: la app la usa una sola persona, así que esto no debería notarse
+  // nunca en uso normal, solo frena un abuso (o un bug) que dispare peticiones sin control.
+  await app.register(rateLimit, { max: 300, timeWindow: "1 minute" });
 
   app.get("/health", async () => ({ status: "ok" }));
 
