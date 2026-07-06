@@ -128,17 +128,6 @@ describe("/savings-trackers", () => {
   });
 });
 
-describe("GET /export", () => {
-  it("junta todos los recursos", async () => {
-    await app.inject({ method: "POST", url: "/accounts", payload: { name: "ING" } });
-    const res = await app.inject({ method: "GET", url: "/export" });
-    expect(res.statusCode).toBe(200);
-    const body = res.json();
-    expect(body.accounts).toHaveLength(1);
-    expect(body).toHaveProperty("exportedAt");
-  });
-});
-
 describe("autenticación opcional (API_TOKEN), de extremo a extremo con el servidor real", () => {
   it("con apiToken configurado, exige el token también en las rutas ya montadas", async () => {
     const authedApp = await buildServer(pool, { logger: false, apiToken: "demo-token" });

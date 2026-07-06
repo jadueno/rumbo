@@ -20,7 +20,6 @@ import { createTransferUseCases } from "../../application/transfers.js";
 import { createSavingsTrackerUseCases } from "../../application/savingsTrackers.js";
 import { createPropertyUseCases } from "../../application/properties.js";
 import { createSnapshotUseCases } from "../../application/snapshots.js";
-import { createExportUseCases } from "../../application/exportData.js";
 
 export async function buildServer(pool: Pool, options: { logger?: boolean; apiToken?: string } = {}) {
   const app = Fastify({ logger: options.logger ?? true });
@@ -47,18 +46,6 @@ export async function buildServer(pool: Pool, options: { logger?: boolean; apiTo
   registerCrudRoutes(app, "/savings-trackers", createSavingsTrackerUseCases(savingsTrackerRepository));
   registerCrudRoutes(app, "/properties", createPropertyUseCases(propertyRepository));
   registerCrudRoutes(app, "/snapshots", createSnapshotUseCases(snapshotRepository));
-
-  const exportUseCases = createExportUseCases({
-    accounts: accountRepository,
-    incomes: incomeRepository,
-    expenses: expenseRepository,
-    debts: debtRepository,
-    transfers: transferRepository,
-    savingsTrackers: savingsTrackerRepository,
-    properties: propertyRepository,
-    snapshots: snapshotRepository,
-  });
-  app.get("/export", async () => exportUseCases.exportAll());
 
   return app;
 }

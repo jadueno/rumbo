@@ -23,18 +23,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-/** Descarga un JSON con todos los datos financieros reales guardados en la base de datos. */
-export async function downloadDataExport(): Promise<void> {
-  const data = await request<unknown>("/export");
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `rumbo-export-${new Date().toISOString().slice(0, 10)}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 /** Cliente CRUD genérico para un recurso REST estándar (GET/POST/PUT/DELETE). */
 export function createCrudClient<T, TNew>(path: string) {
   return {

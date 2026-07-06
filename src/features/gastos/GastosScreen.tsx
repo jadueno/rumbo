@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import type { Account, FinancialProfile, NewAccount, NewExpenseItem, NewIncomeSource, NewTransfer } from "../../domain/types";
 import { balanceByAccount, formatEUR, totalMonthlyExpenses, totalMonthlyIncome } from "../../domain/calculations";
 import { Card } from "../../components/Card";
@@ -11,8 +11,13 @@ import { AddIncomeForm } from "./AddIncomeForm";
 import { AddExpenseForm } from "./AddExpenseForm";
 import { AddTransferForm } from "./AddTransferForm";
 import { AddAccountForm } from "./AddAccountForm";
-import { ImportStatementModal } from "./ImportStatementModal";
 import { UploadIcon } from "../../components/icons";
+
+// xlsx y pdfjs-dist (que solo hacen falta para leer extractos bancarios) pesan ~1MB
+// juntos: se cargan aparte, sólo al abrir este modal, para no engordar la carga inicial.
+const ImportStatementModal = lazy(() =>
+  import("./ImportStatementModal").then((m) => ({ default: m.ImportStatementModal })),
+);
 
 interface Props {
   profile: FinancialProfile;
@@ -350,12 +355,14 @@ export function GastosScreen({
       </div>
 
       {importOpen && (
-        <ImportStatementModal
-          accountNames={accountNames}
-          expenses={profile.expenses}
-          onAddExpense={onAddExpense}
-          onClose={() => setImportOpen(false)}
-        />
+        <Suspense fallback={null}>
+          <ImportStatementModal
+            accountNames={accountNames}
+            expenses={profile.expenses}
+            onAddExpense={onAddExpense}
+            onClose={() => setImportOpen(false)}
+          />
+        </Suspense>
       )}
     </div>
   );
