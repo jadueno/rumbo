@@ -36,6 +36,22 @@ export function TrendChart({
     return <p className="text-sm text-[var(--text-muted)]">Todavía no hay snapshots guardados.</p>;
   }
 
+  // Una línea necesita al menos 2 puntos para mostrar una tendencia; con uno
+  // solo, un "gráfico" es solo un punto flotando en una caja vacía — no es un
+  // gráfico, es un número (ver skill de dataviz: "¿es esto siquiera un gráfico?").
+  if (points.length === 1) {
+    return (
+      <div>
+        <p className="text-3xl font-extrabold tabular-nums text-[var(--text-primary)]">
+          {formatValue(points[0].value)}
+        </p>
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
+          {formatMonth(points[0].month)} — guarda al menos un mes más para ver la evolución.
+        </p>
+      </div>
+    );
+  }
+
   const values = points.map((p) => p.value);
   const rawMin = Math.min(...values);
   const rawMax = Math.max(...values);
@@ -45,7 +61,7 @@ export function TrendChart({
   const plotWidth = WIDTH - PAD_X * 2;
   const plotHeight = HEIGHT - PAD_TOP - PAD_BOTTOM;
 
-  const x = (i: number) => (points.length === 1 ? WIDTH / 2 : PAD_X + (i / (points.length - 1)) * plotWidth);
+  const x = (i: number) => PAD_X + (i / (points.length - 1)) * plotWidth;
   const y = (value: number) => PAD_TOP + (1 - (value - min) / (max - min)) * plotHeight;
 
   const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${x(i)} ${y(p.value)}`).join(" ");
