@@ -62,7 +62,7 @@ export default function App() {
       </nav>
 
       <main className="relative flex-1 p-4 pb-36 sm:p-8 sm:pb-12">
-        <div>
+        <div className="mx-auto max-w-6xl">
           {data.error && (
             <div
               role="alert"
