@@ -55,9 +55,12 @@ html {
   overflow-x: hidden;
 }
 
+/* overflow-x sólo en html, no en body: ponerlo también en body fuerza su overflow-y a
+   "auto" (regla CSS: si un eje no es "visible", el otro deja de serlo), convirtiéndolo
+   en su propio scroll container y rompiendo `position: sticky` en sus descendientes
+   (el nav de escritorio dejaba de fijarse al hacer scroll). */
 body {
   margin: 0;
-  overflow-x: hidden;
   overscroll-behavior-x: none;
   background: var(--page);
   color: var(--text-primary);

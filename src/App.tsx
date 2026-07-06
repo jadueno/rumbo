@@ -37,7 +37,7 @@ export default function App() {
       {/* Sidebar de escritorio */}
       <nav
         aria-label="Secciones de la app"
-        className="hidden shrink-0 flex-col gap-1 border-r border-[var(--border)] bg-[var(--surface-1)] p-4 sm:flex sm:h-screen sm:w-60"
+        className="hidden shrink-0 flex-col gap-1 border-r border-[var(--border)] bg-[var(--surface-1)] p-4 sm:sticky sm:top-0 sm:flex sm:h-screen sm:w-60"
       >
         <div className="mb-4 flex items-center gap-2.5 px-2">
           <BrandMark />
