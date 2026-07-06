@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import type { Pool } from "pg";
 import { registerAuth } from "./auth.js";
@@ -24,6 +25,9 @@ import { createSnapshotUseCases } from "../../application/snapshots.js";
 
 export async function buildServer(pool: Pool, options: { logger?: boolean; apiToken?: string } = {}) {
   const app = Fastify({ logger: options.logger ?? true });
+  // CSP desactivada a propósito: esta API solo devuelve JSON, nunca HTML/JS, así que
+  // una Content-Security-Policy (pensada para páginas renderizadas) no aporta nada aquí.
+  await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(cors, { origin: true, methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"] });
   // Límite generoso: la app la usa una sola persona, así que esto no debería notarse
   // nunca en uso normal, solo frena un abuso (o un bug) que dispare peticiones sin control.
