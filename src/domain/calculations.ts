@@ -79,11 +79,19 @@ export function deliberateSavingsAndInvestment(
   return sum(accountBalances.filter((a) => tracked.has(a.account)).map((a) => a.balance));
 }
 
-/** Dinero que se acumula en cuentas sin un seguimiento de ahorro/inversión vinculado (ni gasto asignado). */
+/**
+ * Colchón permitido por cuenta sin seguimiento antes de contar como "dinero ocioso": un
+ * pequeño sobrante para imprevistos en cada cuenta es deseable, no un fallo de planificación.
+ */
+const IDLE_BUFFER_PER_ACCOUNT = 200;
+
+/** Dinero que se acumula en cuentas sin un seguimiento de ahorro/inversión vinculado, por encima del colchón permitido por cuenta. */
 export function idleSurplus(accountBalances: AccountBalance[], trackers: SavingsTracker[]): number {
   const tracked = trackedAccountNames(trackers);
   return sum(
-    accountBalances.filter((a) => !tracked.has(a.account)).map((a) => Math.max(0, a.balance)),
+    accountBalances
+      .filter((a) => !tracked.has(a.account))
+      .map((a) => Math.max(0, a.balance - IDLE_BUFFER_PER_ACCOUNT)),
   );
 }
 

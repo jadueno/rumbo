@@ -151,8 +151,8 @@ describe("deliberateSavingsAndInvestment / idleSurplus", () => {
     expect(deliberateSavingsAndInvestment(accountBalances, trackers)).toBe(500);
   });
 
-  it("idleSurplus solo cuenta cuentas sin seguimiento y nunca resta (clamp a 0)", () => {
-    expect(idleSurplus(accountBalances, trackers)).toBe(1500);
+  it("idleSurplus solo cuenta cuentas sin seguimiento, y descuenta 200€ de colchón permitido por cuenta", () => {
+    expect(idleSurplus(accountBalances, trackers)).toBe(1300);
   });
 
   it("idleSurplus ignora balances negativos en vez de restarlos", () => {
@@ -160,6 +160,13 @@ describe("deliberateSavingsAndInvestment / idleSurplus", () => {
       { account: "Nomina", income: 1000, expenses: 1500, transfersIn: 0, transfersOut: 0, balance: -500 },
     ];
     expect(idleSurplus(negativeBalances, [])).toBe(0);
+  });
+
+  it("idleSurplus no cuenta un sobrante por debajo del colchón permitido por cuenta", () => {
+    const smallSurplusBalances = [
+      { account: "Nomina", income: 1000, expenses: 800, transfersIn: 0, transfersOut: 0, balance: 200 },
+    ];
+    expect(idleSurplus(smallSurplusBalances, [])).toBe(0);
   });
 
   it("una cuenta compartida por dos seguimientos solo cuenta una vez", () => {
@@ -759,14 +766,25 @@ describe("scoreFromMetrics", () => {
 });
 
 describe("idleRatio", () => {
-  it("calcula el dinero ocioso como ratio del ingreso mensual", () => {
+  it("calcula el dinero ocioso como ratio del ingreso mensual, descontando el colchón permitido por cuenta", () => {
     const profile = makeProfile({
       incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 2000 }],
     });
     const accountBalances = [
-      { account: "Nomina", income: 2000, expenses: 0, transfersIn: 0, transfersOut: 0, balance: 400 },
+      { account: "Nomina", income: 2000, expenses: 0, transfersIn: 0, transfersOut: 0, balance: 600 },
     ];
+    // 600 de sobrante - 200 de colchón permitido = 400 ociosos, sobre 2000 de ingreso = 0.2
     expect(idleRatio(profile, accountBalances, [])).toBe(0.2);
+  });
+
+  it("no cuenta como ocioso un sobrante que no supera el colchón permitido por cuenta", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 2000 }],
+    });
+    const accountBalances = [
+      { account: "Nomina", income: 2000, expenses: 0, transfersIn: 0, transfersOut: 0, balance: 150 },
+    ];
+    expect(idleRatio(profile, accountBalances, [])).toBe(0);
   });
 
   it("devuelve 0 si no hay ingresos", () => {

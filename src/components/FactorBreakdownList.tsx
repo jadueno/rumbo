@@ -9,7 +9,7 @@ const FACTOR_DESCRIPTIONS: Record<FinancialHealthFactor["key"], string> = {
   debtLoad:
     "Qué parte de tus ingresos mensuales se va en cuotas de deuda (préstamos, financiación). Sin deuda = 100 puntos; a partir de un 35% de tus ingresos en cuotas = 0 puntos.",
   idleSurplus:
-    "Dinero que cada mes no va ni a gastos ni a un ahorro/inversión con destino, sobre tus ingresos. Si no se queda nada ocioso = 100 puntos; a partir de un 20% de tus ingresos sin destino = 0 puntos.",
+    "Dinero que cada mes no va ni a gastos ni a un ahorro/inversión con destino, sobre tus ingresos (se permiten hasta 200€ de colchón por cuenta sin que cuenten). Si no se queda nada ocioso = 100 puntos; a partir de un 20% de tus ingresos sin destino = 0 puntos.",
 };
 
 function toneColorForScore(score: number): string {
