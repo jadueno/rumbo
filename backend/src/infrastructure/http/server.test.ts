@@ -138,3 +138,24 @@ describe("GET /export", () => {
     expect(body).toHaveProperty("exportedAt");
   });
 });
+
+describe("autenticación opcional (API_TOKEN), de extremo a extremo con el servidor real", () => {
+  it("con apiToken configurado, exige el token también en las rutas ya montadas", async () => {
+    const authedApp = await buildServer(pool, { logger: false, apiToken: "demo-token" });
+
+    const withoutToken = await authedApp.inject({ method: "GET", url: "/accounts" });
+    expect(withoutToken.statusCode).toBe(401);
+
+    const health = await authedApp.inject({ method: "GET", url: "/health" });
+    expect(health.statusCode).toBe(200);
+
+    const withToken = await authedApp.inject({
+      method: "GET",
+      url: "/accounts",
+      headers: { authorization: "Bearer demo-token" },
+    });
+    expect(withToken.statusCode).toBe(200);
+
+    await authedApp.close();
+  });
+});

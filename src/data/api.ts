@@ -3,10 +3,17 @@
 // propio móvil y no al Mac que sirve el backend.
 export const API_URL = import.meta.env.VITE_API_URL ?? `${window.location.protocol}//${window.location.hostname}:3001`;
 
+// Solo se envía si el backend tiene API_TOKEN activado (ver backend/.env.example);
+// vacío por defecto, así que el uso personal habitual no cambia.
+const API_TOKEN = import.meta.env.VITE_API_TOKEN;
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: init?.body ? { "Content-Type": "application/json" } : undefined,
+    headers: {
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
+    },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

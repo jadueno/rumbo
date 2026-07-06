@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import type { Pool } from "pg";
+import { registerAuth } from "./auth.js";
 import { registerCrudRoutes } from "./crudRoutes.js";
 import { registerAccountRoutes } from "./accountRoutes.js";
 import { createAccountRepository } from "../db/repositories/accountRepository.js";
@@ -19,11 +20,13 @@ import { createSavingsTrackerUseCases } from "../../application/savingsTrackers.
 import { createPropertyUseCases } from "../../application/properties.js";
 import { createExportUseCases } from "../../application/exportData.js";
 
-export async function buildServer(pool: Pool, options: { logger?: boolean } = {}) {
+export async function buildServer(pool: Pool, options: { logger?: boolean; apiToken?: string } = {}) {
   const app = Fastify({ logger: options.logger ?? true });
   await app.register(cors, { origin: true, methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"] });
 
   app.get("/health", async () => ({ status: "ok" }));
+
+  registerAuth(app, options.apiToken);
 
   const accountRepository = createAccountRepository(pool);
   const incomeRepository = createIncomeRepository(pool);
