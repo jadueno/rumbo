@@ -11,6 +11,8 @@ import { AddIncomeForm } from "./AddIncomeForm";
 import { AddExpenseForm } from "./AddExpenseForm";
 import { AddTransferForm } from "./AddTransferForm";
 import { AddAccountForm } from "./AddAccountForm";
+import { ImportStatementModal } from "./ImportStatementModal";
+import { UploadIcon } from "../../components/icons";
 
 interface Props {
   profile: FinancialProfile;
@@ -42,6 +44,7 @@ export function GastosScreen({
   const confirm = useConfirm();
   const [openForm, setOpenForm] = useState<"income" | "expense" | "transfer" | "account" | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const totalIncome = totalMonthlyIncome(profile);
   const totalExpenses = totalMonthlyExpenses(profile);
   const balanceDiff = totalIncome - totalExpenses;
@@ -192,6 +195,10 @@ export function GastosScreen({
             >
               + Añadir transferencia
             </Button>
+            <Button tone="neutral" variant="tint" size="sm" onClick={() => setImportOpen(true)}>
+              <UploadIcon className="size-4 shrink-0" />
+              Importar movimientos
+            </Button>
           </div>
         </div>
 
@@ -341,6 +348,15 @@ export function GastosScreen({
           })}
         </div>
       </div>
+
+      {importOpen && (
+        <ImportStatementModal
+          accountNames={accountNames}
+          expenses={profile.expenses}
+          onAddExpense={onAddExpense}
+          onClose={() => setImportOpen(false)}
+        />
+      )}
     </div>
   );
 }
