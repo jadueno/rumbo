@@ -19,8 +19,8 @@ import { createSavingsTrackerUseCases } from "../../application/savingsTrackers.
 import { createPropertyUseCases } from "../../application/properties.js";
 import { createExportUseCases } from "../../application/exportData.js";
 
-export async function buildServer(pool: Pool) {
-  const app = Fastify({ logger: true });
+export async function buildServer(pool: Pool, options: { logger?: boolean } = {}) {
+  const app = Fastify({ logger: options.logger ?? true });
   await app.register(cors, { origin: true, methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"] });
 
   app.get("/health", async () => ({ status: "ok" }));

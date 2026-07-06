@@ -1,0 +1,43 @@
+import "dotenv/config";
+import { Pool } from "pg";
+
+const TABLES = [
+  "transfers",
+  "debts",
+  "expenses",
+  "incomes",
+  "savings_trackers",
+  "properties",
+  "snapshots",
+  "accounts",
+];
+
+/**
+ * Pool conectado a TEST_DATABASE_URL, nunca a la base real. Falla pronto y con un
+ * mensaje claro si la variable no está puesta o apunta por error a la base de
+ * producción, para no arriesgarse a truncar datos reales.
+ */
+export function createTestPool(): Pool {
+  const connectionString = process.env.TEST_DATABASE_URL;
+  if (!connectionString) {
+    throw new Error(
+      "Falta TEST_DATABASE_URL en el entorno. Configúrala en backend/.env apuntando a una base de datos de test (nunca a la real).",
+    );
+  }
+  if (connectionString === process.env.DATABASE_URL) {
+    throw new Error("TEST_DATABASE_URL no puede ser igual que DATABASE_URL: los tests truncarían tus datos reales.");
+  }
+  const pool = new Pool({ connectionString });
+  // Sin esto, un hipo de Postgres durante la suite tumbaría el proceso de test entero
+  // en vez de fallar solo el test en curso (ver pool.ts de producción y el bug real
+  // documentado en ARCHITECTURE.md que motivó este mismo fix ahí).
+  pool.on("error", (err) => {
+    console.error("Error inesperado en un cliente inactivo del pool de test", err);
+  });
+  return pool;
+}
+
+/** Vacía todas las tablas de la app entre tests, sin recrear el esquema. */
+export async function resetDatabase(pool: Pool): Promise<void> {
+  await pool.query(`truncate table ${TABLES.join(", ")} restart identity cascade`);
+}
