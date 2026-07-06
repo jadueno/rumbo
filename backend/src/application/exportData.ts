@@ -1,4 +1,4 @@
-import type { Account, Debt, Expense, Income, Property, SavingsTracker, Transfer } from "../domain/types.js";
+import type { Account, Debt, Expense, Income, Property, SavingsTracker, Snapshot, Transfer } from "../domain/types.js";
 
 export interface DataExport {
   exportedAt: string;
@@ -9,6 +9,7 @@ export interface DataExport {
   transfers: Transfer[];
   savingsTrackers: SavingsTracker[];
   properties: Property[];
+  snapshots: Snapshot[];
 }
 
 interface Listable<T> {
@@ -23,18 +24,21 @@ export function createExportUseCases(repos: {
   transfers: Listable<Transfer>;
   savingsTrackers: Listable<SavingsTracker>;
   properties: Listable<Property>;
+  snapshots: Listable<Snapshot>;
 }) {
   return {
     exportAll: async (): Promise<DataExport> => {
-      const [accounts, incomes, expenses, debts, transfers, savingsTrackers, properties] = await Promise.all([
-        repos.accounts.list(),
-        repos.incomes.list(),
-        repos.expenses.list(),
-        repos.debts.list(),
-        repos.transfers.list(),
-        repos.savingsTrackers.list(),
-        repos.properties.list(),
-      ]);
+      const [accounts, incomes, expenses, debts, transfers, savingsTrackers, properties, snapshots] =
+        await Promise.all([
+          repos.accounts.list(),
+          repos.incomes.list(),
+          repos.expenses.list(),
+          repos.debts.list(),
+          repos.transfers.list(),
+          repos.savingsTrackers.list(),
+          repos.properties.list(),
+          repos.snapshots.list(),
+        ]);
       return {
         exportedAt: new Date().toISOString(),
         accounts,
@@ -44,6 +48,7 @@ export function createExportUseCases(repos: {
         transfers,
         savingsTrackers,
         properties,
+        snapshots,
       };
     },
   };

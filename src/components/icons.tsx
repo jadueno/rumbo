@@ -103,3 +103,12 @@ export function UploadIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function TrendIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="m4 15 5.5-5.5 4 4L20 6.5" />
+      <path d="M14.5 6.5H20V12" />
+    </svg>
+  );
+}

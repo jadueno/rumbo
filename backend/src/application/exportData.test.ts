@@ -15,6 +15,7 @@ describe("createExportUseCases", () => {
       transfers: listable([]),
       savingsTrackers: listable([]),
       properties: listable([]),
+      snapshots: listable([]),
     });
 
     const result = await useCases.exportAll();
@@ -22,6 +23,7 @@ describe("createExportUseCases", () => {
     expect(result.accounts).toHaveLength(1);
     expect(result.incomes).toHaveLength(1);
     expect(result.expenses).toEqual([]);
+    expect(result.snapshots).toEqual([]);
     expect(new Date(result.exportedAt).toString()).not.toBe("Invalid Date");
   });
 });

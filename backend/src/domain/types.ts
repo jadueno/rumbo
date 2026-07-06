@@ -70,3 +70,16 @@ export interface SavingsTracker {
 }
 
 export type NewSavingsTracker = Omit<SavingsTracker, "id">;
+
+export interface Snapshot {
+  id: string;
+  /** Mes al que corresponde, formato "YYYY-MM". Como mucho un snapshot por mes. */
+  month: string;
+  netWorth: number;
+  /** Ratio 0-1, no porcentaje. */
+  savingsRate: number;
+  /** 0-100. */
+  healthScore: number;
+}
+
+export type NewSnapshot = Omit<Snapshot, "id">;

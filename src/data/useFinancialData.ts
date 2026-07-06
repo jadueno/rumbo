@@ -8,9 +8,11 @@ import type {
   NewIncomeSource,
   NewProperty,
   NewSavingsTracker,
+  NewSnapshot,
   NewTransfer,
   Property,
   SavingsTracker,
+  Snapshot,
 } from "../domain/types";
 import { staticProfile } from "./finances";
 import { createCrudClient } from "./api";
@@ -34,12 +36,14 @@ const debtClient = createCrudClient<ApiDebt, ReturnType<typeof toApiDebt>>("/deb
 const transferClient = createCrudClient<ApiTransfer, NewTransfer>("/transfers");
 const trackerClient = createCrudClient<SavingsTracker, NewSavingsTracker>("/savings-trackers");
 const propertyClient = createCrudClient<Property, NewProperty>("/properties");
+const snapshotClient = createCrudClient<Snapshot, NewSnapshot>("/snapshots");
 
 export function useFinancialData() {
   const [profile, setProfile] = useState<FinancialProfile | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [trackers, setTrackers] = useState<SavingsTracker[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +51,7 @@ export function useFinancialData() {
     setLoading(true);
     setError(null);
     try {
-      const [accountList, apiIncomes, apiExpenses, apiDebts, transfers, trackerList, propertyList] =
+      const [accountList, apiIncomes, apiExpenses, apiDebts, transfers, trackerList, propertyList, snapshotList] =
         await Promise.all([
           accountClient.list(),
           incomeClient.list(),
@@ -56,10 +60,12 @@ export function useFinancialData() {
           transferClient.list(),
           trackerClient.list(),
           propertyClient.list(),
+          snapshotClient.list(),
         ]);
       setAccounts(accountList);
       setTrackers(trackerList);
       setProperties(propertyList);
+      setSnapshots(snapshotList);
       setProfile({
         ...staticProfile,
         incomes: apiIncomes.map(toIncomeSource),
@@ -83,6 +89,7 @@ export function useFinancialData() {
     accounts,
     trackers,
     properties,
+    snapshots,
     loading,
     error,
     addAccount: async (entity: NewAccount) => {
@@ -151,6 +158,18 @@ export function useFinancialData() {
     },
     removeProperty: async (id: string) => {
       await propertyClient.remove(id);
+      await reload();
+    },
+    addSnapshot: async (entity: NewSnapshot) => {
+      await snapshotClient.create(entity);
+      await reload();
+    },
+    updateSnapshot: async (id: string, entity: NewSnapshot) => {
+      await snapshotClient.update(id, entity);
+      await reload();
+    },
+    removeSnapshot: async (id: string) => {
+      await snapshotClient.remove(id);
       await reload();
     },
   };

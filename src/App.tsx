@@ -6,11 +6,12 @@ import { DeudasScreen } from "./features/deudas/DeudasScreen";
 import { AhorroScreen } from "./features/ahorro/AhorroScreen";
 import { RecomendacionesScreen } from "./features/recomendaciones/RecomendacionesScreen";
 import { SimuladorScreen } from "./features/simulador/SimuladorScreen";
-import { HomeIcon, ExpenseIcon, DebtIcon, SavingsIcon, TipIcon, SimulatorIcon } from "./components/icons";
+import { HistorialScreen } from "./features/historial/HistorialScreen";
+import { HomeIcon, ExpenseIcon, DebtIcon, SavingsIcon, TipIcon, SimulatorIcon, TrendIcon } from "./components/icons";
 import { LoadingState } from "./components/LoadingState";
 import { BrandMark } from "./components/BrandMark";
 
-type Section = "resumen" | "gastos" | "deudas" | "ahorro" | "recomendaciones" | "simulador";
+type Section = "resumen" | "gastos" | "deudas" | "ahorro" | "recomendaciones" | "simulador" | "historial";
 
 const sections: {
   id: Section;
@@ -23,6 +24,7 @@ const sections: {
   { id: "deudas", label: "Deudas", shortLabel: "Deudas", icon: DebtIcon },
   { id: "ahorro", label: "Ahorro", shortLabel: "Ahorro", icon: SavingsIcon },
   { id: "simulador", label: "Simulador", shortLabel: "Simular", icon: SimulatorIcon },
+  { id: "historial", label: "Historial", shortLabel: "Historial", icon: TrendIcon },
   { id: "recomendaciones", label: "Recomendaciones", shortLabel: "Consejos", icon: TipIcon },
 ];
 
@@ -120,6 +122,18 @@ export default function App() {
               )}
               {section === "simulador" && (
                 <SimuladorScreen profile={data.profile} accounts={data.accounts} trackers={data.trackers} />
+              )}
+              {section === "historial" && (
+                <HistorialScreen
+                  profile={data.profile}
+                  accounts={data.accounts}
+                  trackers={data.trackers}
+                  properties={data.properties}
+                  snapshots={data.snapshots}
+                  onAddSnapshot={data.addSnapshot}
+                  onUpdateSnapshot={data.updateSnapshot}
+                  onRemoveSnapshot={data.removeSnapshot}
+                />
               )}
               {section === "recomendaciones" && (
                 <RecomendacionesScreen
