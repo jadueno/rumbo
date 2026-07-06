@@ -1,8 +1,8 @@
 # Rumbo
 
-[![CI](https://github.com/jadueno/salud-financiera/actions/workflows/ci.yml/badge.svg)](https://github.com/jadueno/salud-financiera/actions/workflows/ci.yml)
+[![CI](https://github.com/jadueno/rumbo/actions/workflows/ci.yml/badge.svg)](https://github.com/jadueno/rumbo/actions/workflows/ci.yml)
 
-App personal (un solo usuario) para ver de un vistazo cómo va tu economía: ingresos, gastos, deudas, ahorro/inversión y recomendaciones. Ingresos, gastos, deudas, transferencias y cuentas se pueden añadir/editar/borrar libremente (con confirmación antes de borrar) — se guardan en una base de datos Postgres local, así que puedes "jugar" con los números sin miedo a romper nada real.
+App personal (un solo usuario) para ver de un vistazo cómo va tu economía: ingresos, gastos, deudas, ahorro/inversión, historial/evolución en el tiempo y recomendaciones. Ingresos, gastos, deudas, transferencias y cuentas se pueden añadir/editar/borrar libremente (con confirmación antes de borrar) — se guardan en una base de datos Postgres local, así que puedes "jugar" con los números sin miedo a romper nada real.
 
 📐 Si te interesa la arquitectura, las decisiones técnicas y los bugs reales encontrados durante el desarrollo, están en **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
@@ -13,6 +13,10 @@ Datos ficticios de ejemplo, no los reales del dueño de la app.
 | Resumen (escritorio) | Ingresos y gastos (escritorio) | Resumen (móvil) |
 | --- | --- | --- |
 | ![Resumen](docs/screenshots/resumen-desktop.png) | ![Ingresos y gastos](docs/screenshots/gastos-desktop.png) | ![Resumen en móvil](docs/screenshots/resumen-movil.png) |
+
+**Importar movimientos bancarios** — sube el extracto del banco (ING en `.xls`/`.xlsx`/`.csv`, Bankinter en PDF) y la app detecta qué gastos recurrentes no tienes apuntados, agrupando el mismo comercio aunque el banco cambie el código de operación cada mes:
+
+![Importar movimientos bancarios](docs/screenshots/importar-extractos-desktop.png)
 
 ## Configuración inicial (solo la primera vez)
 
@@ -49,7 +53,7 @@ npm install
 
 ## Arrancar en el día a día
 
-Necesitas 3 cosas corriendo a la vez (cada una en su terminal, o usa `~/AI/proyectos/start-project.sh salud-financiera` si lo tienes configurado para levantarlas todas de golpe):
+Necesitas 3 cosas corriendo a la vez (cada una en su terminal, o usa `~/AI/proyectos/start-project.sh rumbo` si lo tienes configurado para levantarlas todas de golpe):
 
 ```bash
 # 1. Base de datos
@@ -63,6 +67,14 @@ npm run dev                   # http://localhost:5183 (y accesible en tu red/Tai
 ```
 
 Abre `http://localhost:5183` en el navegador.
+
+## Tests
+
+```bash
+npm test              # frontend: dominio + componentes (Vitest + React Testing Library)
+cd backend && npm test  # backend: casos de uso + integración HTTP real (ver backend/README.md)
+npm run test:e2e      # E2E: backend + frontend + Postgres de test reales, con Playwright
+```
 
 ## Usar desde el móvil
 
@@ -91,7 +103,7 @@ Notas:
 
 - `src/domain/` — tipos y cálculos financieros puros (sin UI, sin red).
 - `src/data/` — `finances.ts` (config estática real, ignorado por git), `api.ts` + `useFinancialData.ts` (cliente HTTP y estado de la app).
-- `src/features/` — una pantalla por carpeta (resumen, gastos [ingresos+gastos+transferencias+cuentas], deudas, ahorro, simulador, recomendaciones), con sus formularios de alta.
+- `src/features/` — una pantalla por carpeta (resumen, gastos [ingresos+gastos+transferencias+cuentas], deudas, ahorro, simulador, historial, recomendaciones), con sus formularios de alta.
 - `src/components/` — piezas de UI reutilizables (incluye `ConfirmProvider`, el modal de confirmación de borrados).
 - `backend/` — API en Node + TypeScript (Fastify) sobre Postgres, arquitectura hexagonal (`domain/` → `application/` → `infrastructure/`). Ver `backend/README.md`.
 - `docker-compose.yml` — Postgres local, puerto 5433.
