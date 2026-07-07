@@ -86,13 +86,14 @@ export function ImportStatementModal({ accountNames, expenses, onAddExpense, onC
       onKeyDown={(e) => e.key === "Escape" && onClose()}
     >
       <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-1)] shadow-float">
-        <div className="flex items-center justify-between border-b border-[var(--gridline)] p-5">
+        <div className="flex items-start justify-between border-b border-[var(--gridline)] p-5">
           <div>
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Importar movimientos bancarios</h2>
             <p className="text-xs text-[var(--text-muted)]">
               Sube el extracto del banco (varios meses o varios archivos) para detectar gastos que no tengas
-              apuntados. Si el archivo trae varias cuentas, podrás asignar cada una a la cuenta de la app que
-              corresponda.
+              apuntados. En <strong>.xls</strong>/<strong>.xlsx</strong>/<strong>.csv</strong> funciona con cualquier
+              banco (ING, Ibercaja...); en <strong>.pdf</strong>, de momento solo Bankinter y BBVA. Si el archivo trae
+              varias cuentas, podrás asignar cada una a la cuenta de la app que corresponda.
             </p>
           </div>
           <button

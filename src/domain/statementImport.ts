@@ -107,7 +107,12 @@ function findColumnMap(rows: unknown[][]): { headerIndex: number; columns: Colum
     if (!row) continue;
     const headers = row.map(normalizeHeader);
     const amountIdx = headers.findIndex((h) => h.includes("IMPORTE"));
-    const descriptionIdx = headers.findIndex((h) => h.includes("DESCRIP") || h.includes("CONCEPTO"));
+    // Si el extracto trae "Concepto" (tipo genérico de movimiento, p. ej. "RECIBO") y
+    // "Descripción" (el comercio real) a la vez —como Ibercaja—, se prioriza Descripción:
+    // agrupar por el comercio concreto es lo útil aquí, no por el tipo de movimiento.
+    const descripIdx = headers.findIndex((h) => h.includes("DESCRIP"));
+    const conceptoIdx = headers.findIndex((h) => h.includes("CONCEPTO"));
+    const descriptionIdx = descripIdx !== -1 ? descripIdx : conceptoIdx;
     if (amountIdx === -1 || descriptionIdx === -1) continue;
 
     return {
@@ -317,6 +322,70 @@ export function parseBankinterPdfLines(lines: string[]): StatementSection[] {
   }
   if (current && current.movements.length > 0) sections.push(current);
   return sections;
+}
+
+const BBVA_EMISSION_DATE_RE = /Fecha de emisi[oó]n:\s*(\d{2})\/(\d{2})\/(\d{4})/i;
+const BBVA_IBAN_RE = /IBAN\s+([A-Z]{2}\d{2}(?:\s+\d{4}){5})/i;
+const BBVA_MOVEMENT_LINE_RE = /^(\d{2})\/(\d{2})\s+\d{2}\/\d{2}\s+(.+?)\s+(-?[\d.]+,\d{2})\s+[\d.]+,\d{2}\s*$/;
+
+/**
+ * BBVA no expone el año en cada movimiento (solo DD/MM), así que se toma del encabezado
+ * "Fecha de emisión". Un extracto mensual puede arrastrar algún movimiento de finales del
+ * mes anterior (p. ej. emitido en enero con movimientos de diciembre): si el mes del
+ * movimiento es posterior al de emisión, se asume que pertenece al año anterior.
+ */
+function parseBbvaDate(day: string, month: string, referenceYear: number, referenceMonth: number): Date {
+  const monthNum = Number(month);
+  const year = monthNum > referenceMonth ? referenceYear - 1 : referenceYear;
+  return new Date(year, monthNum - 1, Number(day));
+}
+
+/**
+ * La línea de detalle bajo cada movimiento trae un prefijo de referencia (nº de tarjeta de
+ * 16 dígitos, o una referencia "N ...") antes del comercio o concepto real, p. ej.
+ * "4188202167224417 Google One" o "N 2026147002672560 TGSS. COTIZACION 005 R.E.AUTONOMOS".
+ */
+function stripBbvaReference(text: string): string {
+  return text.replace(/^\d{10,}\s+/, "").replace(/^N\s+\d+\s+/i, "").trim();
+}
+
+/**
+ * Extrae los movimientos de un "Extracto mensual de cuentas personales" de BBVA (PDF).
+ * A diferencia de Bankinter, cada línea de movimiento ya trae su propio importe (no hay que
+ * derivarlo de la diferencia de saldo) y el detalle del comercio va en la línea siguiente, sin
+ * fecha ni importe — se usa como descripción cuando está presente y si no, el concepto genérico
+ * de la propia línea de movimiento (p. ej. "TRANSFERENCIAS").
+ */
+export function parseBbvaPdfLines(lines: string[]): StatementSection[] {
+  const joined = lines.join("\n");
+  const emissionMatch = joined.match(BBVA_EMISSION_DATE_RE);
+  if (!emissionMatch) return [];
+  const [, , emissionMonth, emissionYear] = emissionMatch;
+  const referenceMonth = Number(emissionMonth);
+  const referenceYear = Number(emissionYear);
+
+  const ibanMatch = joined.match(BBVA_IBAN_RE);
+  const sourceLabel = ibanMatch ? `Cuenta ${ibanMatch[1].replace(/\s+/g, " ")}` : "Extracto BBVA";
+
+  const movements: RawMovement[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].trim().match(BBVA_MOVEMENT_LINE_RE);
+    if (!match) continue;
+
+    const [, day, month, conceptTitle, importeStr] = match;
+    const nextLine = lines[i + 1]?.trim();
+    const isDetailLine = !!nextLine && !BBVA_MOVEMENT_LINE_RE.test(nextLine) && !/^SALDO/i.test(nextLine);
+
+    movements.push({
+      date: parseBbvaDate(day, month, referenceYear, referenceMonth),
+      category: "",
+      subcategory: "",
+      description: isDetailLine ? stripBbvaReference(nextLine) : conceptTitle.trim(),
+      amount: parseSpanishAmount(importeStr),
+    });
+  }
+
+  return movements.length > 0 ? [{ sourceLabel, movements }] : [];
 }
 
 /** Busca si un concepto detectado en el extracto ya corresponde a un gasto apuntado en la app. */

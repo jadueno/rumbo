@@ -5,6 +5,7 @@ import {
   matchExistingExpense,
   normalizeConcept,
   parseBankinterPdfLines,
+  parseBbvaPdfLines,
   parseMovementRows,
   parseSpreadsheetRows,
   type RawMovement,
@@ -77,6 +78,15 @@ describe("parseMovementRows", () => {
 
   it("devuelve [] si no reconoce ninguna cabecera con IMPORTE y DESCRIPCIÓN", () => {
     expect(parseMovementRows([["a", "b"], ["c", "d"]])).toEqual([]);
+  });
+
+  it("prioriza la columna Descripción sobre Concepto cuando el extracto trae las dos (p. ej. Ibercaja)", () => {
+    const ibercajaHeader = ["Nº Orden", "Fecha Operacion", "Fecha Valor", "Concepto", "Descripción", "Referencia", "Importe", "Saldo"];
+    const rows = [
+      ibercajaHeader,
+      [1, "06/07/2026", "06/07/2026", "RECIBO", "SECURITAS DIRECT ES", "123", "-64,19", "2230,05"],
+    ];
+    expect(parseMovementRows(rows)[0].description).toBe("SECURITAS DIRECT ES");
   });
 });
 
@@ -198,6 +208,62 @@ describe("parseBankinterPdfLines", () => {
 
   it("devuelve [] si no reconoce ninguna sección", () => {
     expect(parseBankinterPdfLines(["texto suelto sin ninguna cabecera reconocible"])).toEqual([]);
+  });
+});
+
+describe("parseBbvaPdfLines", () => {
+  const sampleLines = [
+    "IBAN ES12 3456 7890 1234 5678 9012",
+    "Fecha de emisión: 01/06/2026",
+    "SALDO ANTERIOR - - - - - - - - - - - - - - - - - - - - - 1.000,00",
+    "04/05 29/04 PAGO CON TARJETA DE COMPRAS A DISTANCIA Y SUSCRIPCIONES -21,99 978,01",
+    "4111111111111111 Netflix",
+    "06/05 06/05 TRANSFERENCIAS 500,00 1.478,01",
+    "29/05 29/05 ADEUDO DE CUOTA DE LA SEGURIDAD SOCIAL -88,56 1.389,45",
+    "N 2026147002672560 TGSS. COTIZACION 005 R.E.AUTONOMOS",
+  ];
+
+  it("usa el IBAN como sourceLabel", () => {
+    const [section] = parseBbvaPdfLines(sampleLines);
+    expect(section.sourceLabel).toBe("Cuenta ES12 3456 7890 1234 5678 9012");
+  });
+
+  it("toma el importe directamente de la línea (no lo deriva del saldo)", () => {
+    const [section] = parseBbvaPdfLines(sampleLines);
+    const netflix = section.movements.find((m) => m.description === "Netflix");
+    expect(netflix?.amount).toBeCloseTo(-21.99);
+  });
+
+  it("usa la línea de detalle (sin el prefijo de referencia) como descripción cuando existe", () => {
+    const [section] = parseBbvaPdfLines(sampleLines);
+    const seguridadSocial = section.movements.find((m) => m.amount === -88.56);
+    expect(seguridadSocial?.description).toBe("TGSS. COTIZACION 005 R.E.AUTONOMOS");
+  });
+
+  it("usa el concepto genérico de la propia línea si no hay línea de detalle", () => {
+    const [section] = parseBbvaPdfLines(sampleLines);
+    const transferencia = section.movements.find((m) => m.amount === 500);
+    expect(transferencia?.description).toBe("TRANSFERENCIAS");
+  });
+
+  it("asigna el mes/día de cada movimiento tomando el año de la fecha de emisión", () => {
+    const [section] = parseBbvaPdfLines(sampleLines);
+    const netflix = section.movements.find((m) => m.description === "Netflix");
+    expect(netflix?.date).toEqual(new Date(2026, 4, 4));
+  });
+
+  it("usa el año anterior si el mes del movimiento es posterior al de emisión (extracto de enero con movimientos de diciembre)", () => {
+    const lines = [
+      "Fecha de emisión: 02/01/2026",
+      "28/12 28/12 PAGO CON TARJETA EN SUPERMERCADOS -40,00 900,00",
+      "Mercadona",
+    ];
+    const [section] = parseBbvaPdfLines(lines);
+    expect(section.movements[0].date).toEqual(new Date(2025, 11, 28));
+  });
+
+  it("devuelve [] si no reconoce la fecha de emisión (no es un extracto BBVA de este formato)", () => {
+    expect(parseBbvaPdfLines(["texto suelto sin ninguna cabecera reconocible"])).toEqual([]);
   });
 });
 

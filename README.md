@@ -14,7 +14,7 @@ Datos ficticios de ejemplo, no los reales del dueño de la app.
 | --- | --- | --- |
 | ![Resumen](docs/screenshots/resumen-desktop.png) | ![Ingresos y gastos](docs/screenshots/gastos-desktop.png) | ![Resumen en móvil](docs/screenshots/resumen-movil.png) |
 
-**Importar movimientos bancarios** — sube el extracto del banco (ING en `.xls`/`.xlsx`/`.csv`, Bankinter en PDF) y la app detecta qué gastos recurrentes no tienes apuntados, agrupando el mismo comercio aunque el banco cambie el código de operación cada mes:
+**Importar movimientos bancarios** — sube el extracto del banco (cualquier banco en `.xls`/`.xlsx`/`.csv` — probado con ING e Ibercaja —, Bankinter o BBVA en PDF) y la app detecta qué gastos recurrentes no tienes apuntados, agrupando el mismo comercio aunque el banco cambie el código de operación cada mes:
 
 ![Importar movimientos bancarios](docs/screenshots/importar-extractos-desktop.png)
 
