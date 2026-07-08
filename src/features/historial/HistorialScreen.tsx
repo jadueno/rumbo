@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { Account, FinancialProfile, NewSnapshot, Property, SavingsTracker, Snapshot } from "../../domain/types";
+import type { BackupOutcome } from "../../data/useFinancialData";
 import {
   balanceByAccount,
   currentEmergencyFundBalance,
@@ -45,8 +47,8 @@ interface Props {
   trackers: SavingsTracker[];
   properties: Property[];
   snapshots: Snapshot[];
-  onAddSnapshot: (snapshot: NewSnapshot) => Promise<void>;
-  onUpdateSnapshot: (id: string, snapshot: NewSnapshot) => Promise<void>;
+  onAddSnapshot: (snapshot: NewSnapshot) => Promise<BackupOutcome>;
+  onUpdateSnapshot: (id: string, snapshot: NewSnapshot) => Promise<BackupOutcome>;
   onRemoveSnapshot: (id: string) => Promise<void>;
 }
 
@@ -61,6 +63,8 @@ export function HistorialScreen({
   onRemoveSnapshot,
 }: Props) {
   const confirm = useConfirm();
+  const [saving, setSaving] = useState(false);
+  const [backupMessage, setBackupMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
   const efBalance = currentEmergencyFundBalance(trackers, accountBalances);
@@ -73,11 +77,21 @@ export function HistorialScreen({
   const sorted = [...snapshots].sort((a, b) => a.month.localeCompare(b.month));
 
   async function handleSave() {
-    const payload: NewSnapshot = { month: thisMonth, netWorth, savingsRate: rate, healthScore: score };
-    if (existing) {
-      await onUpdateSnapshot(existing.id, payload);
-    } else {
-      await onAddSnapshot(payload);
+    setSaving(true);
+    setBackupMessage(null);
+    try {
+      const payload: NewSnapshot = { month: thisMonth, netWorth, savingsRate: rate, healthScore: score };
+      const outcome = existing ? await onUpdateSnapshot(existing.id, payload) : await onAddSnapshot(payload);
+      setBackupMessage(
+        outcome.backupOk
+          ? { text: "Snapshot guardado. Copia de seguridad de la base de datos hecha.", ok: true }
+          : {
+              text: `Snapshot guardado, pero la copia de seguridad ha fallado: ${outcome.backupError}. Revisa que Docker esté corriendo.`,
+              ok: false,
+            },
+      );
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -107,10 +121,18 @@ export function HistorialScreen({
               {existing && " — ya guardado, puedes actualizarlo con los números de hoy"}
             </p>
           </div>
-          <Button tone="violet" onClick={handleSave}>
-            {existing ? "Actualizar snapshot de este mes" : "+ Guardar snapshot de este mes"}
+          <Button tone="violet" onClick={handleSave} disabled={saving}>
+            {saving ? "Guardando…" : existing ? "Actualizar snapshot de este mes" : "+ Guardar snapshot de este mes"}
           </Button>
         </div>
+        {backupMessage && (
+          <p
+            className="mt-3 text-xs"
+            style={{ color: backupMessage.ok ? "var(--status-good)" : "var(--status-warning)" }}
+          >
+            {backupMessage.text}
+          </p>
+        )}
       </Card>
 
       {sorted.length === 0 ? (

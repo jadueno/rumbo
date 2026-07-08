@@ -7,6 +7,8 @@ import { registerAuth } from "./auth.js";
 import { registerCrudRoutes } from "./crudRoutes.js";
 import { registerAccountRoutes } from "./accountRoutes.js";
 import { registerProfileRoutes } from "./profileRoutes.js";
+import { registerBackupRoutes } from "./backupRoutes.js";
+import { runBackup } from "../backup.js";
 import { createAccountRepository } from "../db/repositories/accountRepository.js";
 import { createProfileRepository } from "../db/repositories/profileRepository.js";
 import { createIncomeRepository } from "../db/repositories/incomeRepository.js";
@@ -52,6 +54,7 @@ export async function buildServer(pool: Pool, options: { logger?: boolean; apiTo
 
   registerAccountRoutes(app, createAccountUseCases(accountRepository));
   registerProfileRoutes(app, createProfileUseCases(profileRepository));
+  registerBackupRoutes(app, runBackup);
   registerCrudRoutes(app, "/incomes", createIncomeUseCases(incomeRepository));
   registerCrudRoutes(app, "/expenses", createExpenseUseCases(expenseRepository));
   registerCrudRoutes(app, "/debts", createDebtUseCases(debtRepository));

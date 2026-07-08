@@ -11,8 +11,14 @@ Esta carpeta contiene dumps de Postgres generados por `../scripts/backup-db.sh`.
   gzip → ficheros `salud_financiera_<fecha>_<hora>.dump.gz`
 - Programación: `launchd` (ver `scripts/com.rumbo.dbbackup.plist`),
   se ejecuta una vez al día.
+- **También bajo demanda**: cada vez que guardas o actualizas un snapshot en la
+  pantalla "Historial", el backend ejecuta este mismo script (`POST /backup`,
+  ver `backend/src/infrastructure/backup.ts`) antes de terminar la petición —
+  un punto de recuperación adicional en cada revisión mensual, no solo el
+  diario. Si el backup bajo demanda falla (p. ej. Docker no está corriendo),
+  el snapshot se guarda igualmente y la app avisa del fallo sin deshacer nada.
 - Retención: se borran automáticamente los dumps con más de 14 días
-  (variable `RETENTION_DAYS` en el script).
+  (variable `RETENTION_DAYS` en el script) — aplica a ambos casos.
 
 ## Restaurar un dump
 

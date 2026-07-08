@@ -41,3 +41,14 @@ export function createSingletonClient<T>(path: string) {
     update: (entity: T) => request<T>(path, { method: "PUT", body: JSON.stringify(entity) }),
   };
 }
+
+export interface BackupResult {
+  file: string;
+  sizeBytes: number;
+  at: string;
+}
+
+/** Dispara una copia de seguridad bajo demanda (mismo pg_dump que el cron diario). */
+export function triggerBackup(): Promise<BackupResult> {
+  return request<BackupResult>("/backup", { method: "POST" });
+}

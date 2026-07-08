@@ -16,7 +16,7 @@ import type {
   Snapshot,
 } from "../domain/types";
 import { calculateAge } from "../domain/calculations";
-import { createCrudClient, createSingletonClient } from "./api";
+import { createCrudClient, createSingletonClient, triggerBackup } from "./api";
 import {
   toApiDebt,
   toApiExpense,
@@ -39,6 +39,25 @@ const transferClient = createCrudClient<ApiTransfer, NewTransfer>("/transfers");
 const trackerClient = createCrudClient<SavingsTracker, NewSavingsTracker>("/savings-trackers");
 const propertyClient = createCrudClient<Property, NewProperty>("/properties");
 const snapshotClient = createCrudClient<Snapshot, NewSnapshot>("/snapshots");
+
+export interface BackupOutcome {
+  backupOk: boolean;
+  backupError?: string;
+}
+
+/**
+ * Guardar un snapshot nunca debe fallar porque el backup falle (Docker parado, etc.) —
+ * el snapshot ya se ha guardado de verdad. Se informa del resultado del backup por
+ * separado para que la pantalla pueda avisar sin bloquear ni deshacer el snapshot.
+ */
+async function backupAfterSnapshot(): Promise<BackupOutcome> {
+  try {
+    await triggerBackup();
+    return { backupOk: true };
+  } catch (err) {
+    return { backupOk: false, backupError: err instanceof Error ? err.message : "Error desconocido" };
+  }
+}
 
 export function useFinancialData() {
   const [profile, setProfile] = useState<FinancialProfile | null>(null);
@@ -180,13 +199,15 @@ export function useFinancialData() {
       await propertyClient.remove(id);
       await reload();
     },
-    addSnapshot: async (entity: NewSnapshot) => {
+    addSnapshot: async (entity: NewSnapshot): Promise<BackupOutcome> => {
       await snapshotClient.create(entity);
       await reload();
+      return backupAfterSnapshot();
     },
-    updateSnapshot: async (id: string, entity: NewSnapshot) => {
+    updateSnapshot: async (id: string, entity: NewSnapshot): Promise<BackupOutcome> => {
       await snapshotClient.update(id, entity);
       await reload();
+      return backupAfterSnapshot();
     },
     removeSnapshot: async (id: string) => {
       await snapshotClient.remove(id);
