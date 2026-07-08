@@ -23,8 +23,9 @@ import { IconBadge } from "../../components/IconBadge";
 import { FinancialHealthCard } from "../../components/FinancialHealthCard";
 import { Modal } from "../../components/Modal";
 import { Button } from "../../components/Button";
-import { ExpenseIcon, SavingsIcon, TipIcon, ProfileIcon } from "../../components/icons";
+import { ExpenseIcon, SavingsIcon, TipIcon, ProfileIcon, InfoIcon } from "../../components/icons";
 import { ProfileScreen } from "../perfil/ProfileScreen";
+import { AboutRumboContent } from "./AboutRumboContent";
 
 export function ResumenScreen({
   profile,
@@ -42,6 +43,7 @@ export function ResumenScreen({
   onUpdateProfile: (entity: Profile) => Promise<void>;
 }) {
   const [showProfile, setShowProfile] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const income = totalMonthlyIncome(profile);
   const expenses = totalMonthlyExpenses(profile);
   const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
@@ -66,10 +68,16 @@ export function ResumenScreen({
             {rawProfile?.name ? `Hola ${rawProfile.name}, así` : "Así"} va tu economía este mes.
           </p>
         </div>
-        <Button variant="tint" tone="ink" size="sm" onClick={() => setShowProfile(true)}>
-          <ProfileIcon className="size-4 shrink-0" />
-          Perfil
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="tint" tone="ink" size="sm" onClick={() => setShowAbout(true)}>
+            <InfoIcon className="size-4 shrink-0" />
+            ¿Qué es Rumbo?
+          </Button>
+          <Button variant="tint" tone="ink" size="sm" onClick={() => setShowProfile(true)}>
+            <ProfileIcon className="size-4 shrink-0" />
+            Perfil
+          </Button>
+        </div>
       </div>
 
       {/* Hero: el dato más importante del mes, destacado en el acento de marca. */}
@@ -178,6 +186,12 @@ export function ResumenScreen({
           onClose={() => setShowProfile(false)}
         >
           <ProfileScreen profile={rawProfile} onUpdateProfile={onUpdateProfile} />
+        </Modal>
+      )}
+
+      {showAbout && (
+        <Modal title="¿Qué es Rumbo?" onClose={() => setShowAbout(false)}>
+          <AboutRumboContent />
         </Modal>
       )}
     </div>
