@@ -38,7 +38,7 @@ export function DeudasScreen({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-3 py-2 sm:py-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 py-4 sm:py-6">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-[var(--text-primary)] sm:text-4xl">Deudas</h1>
           <p className="text-base font-normal text-[var(--text-secondary)]">
