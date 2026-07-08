@@ -1,5 +1,13 @@
 import { lazy, Suspense, useState } from "react";
-import type { Account, FinancialProfile, NewAccount, NewExpenseItem, NewIncomeSource, NewTransfer } from "../../domain/types";
+import type {
+  Account,
+  FinancialProfile,
+  NewAccount,
+  NewExpenseItem,
+  NewIncomeSource,
+  NewTransfer,
+  Property,
+} from "../../domain/types";
 import { balanceByAccount, formatEUR, totalMonthlyExpenses, totalMonthlyIncome } from "../../domain/calculations";
 import { Card } from "../../components/Card";
 import { Button } from "../../components/Button";
@@ -22,6 +30,7 @@ const ImportStatementModal = lazy(() =>
 interface Props {
   profile: FinancialProfile;
   accounts: Account[];
+  properties: Property[];
   onAddAccount: (account: NewAccount) => Promise<void>;
   onRemoveAccount: (id: string) => Promise<void>;
   onAddIncome: (income: NewIncomeSource) => Promise<void>;
@@ -36,6 +45,7 @@ interface Props {
 export function GastosScreen({
   profile,
   accounts,
+  properties,
   onAddAccount,
   onRemoveAccount,
   onAddIncome,
@@ -126,9 +136,7 @@ export function GastosScreen({
               <div className="text-sm">
                 <p className="font-medium text-[var(--text-primary)]">
                   {income.label}
-                  {income.property && (
-                    <span className="ml-2 text-xs text-[var(--text-muted)]">({income.property})</span>
-                  )}
+                  <PropertyTag propertyId={income.propertyId} note={income.property} properties={properties} />
                 </p>
                 <p className="text-[var(--text-muted)]">{income.account}</p>
               </div>
@@ -145,6 +153,7 @@ export function GastosScreen({
                       label: income.label,
                       monthlyAmount: Number(e.target.value),
                       property: income.property,
+                      propertyId: income.propertyId,
                     })
                   }
                   className={`w-28 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1.5 text-right text-sm tabular-nums text-[var(--text-primary)] ${focusRing}`}
@@ -164,7 +173,12 @@ export function GastosScreen({
         </ul>
 
         {openForm === "income" ? (
-          <AddIncomeForm accountNames={accountNames} onSubmit={onAddIncome} onCancel={() => setOpenForm(null)} />
+          <AddIncomeForm
+            accountNames={accountNames}
+            properties={properties}
+            onSubmit={onAddIncome}
+            onCancel={() => setOpenForm(null)}
+          />
         ) : (
           <Button tone="ink" className="mt-4" onClick={() => setOpenForm("income")}>
             + Añadir ingreso
@@ -214,7 +228,12 @@ export function GastosScreen({
         )}
         {openForm === "expense" && (
           <Card className="mb-4">
-            <AddExpenseForm accountNames={accountNames} onSubmit={onAddExpense} onCancel={() => setOpenForm(null)} />
+            <AddExpenseForm
+              accountNames={accountNames}
+              properties={properties}
+              onSubmit={onAddExpense}
+              onCancel={() => setOpenForm(null)}
+            />
           </Card>
         )}
         {openForm === "transfer" && (
@@ -283,7 +302,7 @@ export function GastosScreen({
                       <li key={i.id} className="flex items-center justify-between gap-2">
                         <span className="text-[var(--text-secondary)]">
                           {i.label}
-                          {i.property && <span className="ml-2 text-xs text-[var(--text-muted)]">({i.property})</span>}
+                          <PropertyTag propertyId={i.propertyId} note={i.property} properties={properties} />
                         </span>
                         <span className="flex items-center gap-2">
                           <span className="tabular-nums font-medium" style={{ color: "var(--series-income)" }}>
@@ -337,9 +356,11 @@ export function GastosScreen({
                       <li key={item.id} className="flex items-center justify-between gap-2">
                         <span className="text-[var(--text-primary)]">
                           {item.label}
-                          {item.property && item.property !== "General" ? (
-                            <span className="ml-2 text-xs text-[var(--text-muted)]">({item.property})</span>
-                          ) : null}
+                          <PropertyTag
+                            propertyId={item.propertyId}
+                            note={item.property === "General" ? undefined : item.property}
+                            properties={properties}
+                          />
                         </span>
                         <span className="flex items-center gap-2">
                           <span className="tabular-nums font-medium text-[var(--text-primary)]">
@@ -372,6 +393,22 @@ export function GastosScreen({
       )}
     </div>
   );
+}
+
+/** Prioriza el nombre real de la propiedad vinculada (propertyId); si no hay vínculo, cae a la nota libre. */
+function PropertyTag({
+  propertyId,
+  note,
+  properties,
+}: {
+  propertyId?: string;
+  note?: string;
+  properties: Property[];
+}) {
+  const linkedName = propertyId ? properties.find((p) => p.id === propertyId)?.name : undefined;
+  const text = linkedName ?? note;
+  if (!text) return null;
+  return <span className="ml-2 text-xs text-[var(--text-muted)]">({text})</span>;
 }
 
 function DeleteButton({ onClick, label }: { onClick: () => void; label: string }) {

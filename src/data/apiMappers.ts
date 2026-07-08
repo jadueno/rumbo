@@ -6,6 +6,7 @@ export interface ApiIncome {
   label: string;
   monthlyAmount: number;
   property: string | null;
+  propertyId: string | null;
 }
 
 export type NewApiIncome = Omit<ApiIncome, "id">;
@@ -17,6 +18,7 @@ export interface ApiExpense {
   category: ExpenseItem["group"];
   account: string;
   property: string | null;
+  propertyId: string | null;
   label: string;
   monthlyAmount: number;
 }
@@ -35,11 +37,26 @@ export interface ApiDebt {
 export type NewApiDebt = Omit<ApiDebt, "id">;
 
 export function toExpenseItem(e: ApiExpense): ExpenseItem {
-  return { id: e.id, group: e.category, account: e.account, property: e.property ?? undefined, label: e.label, monthlyAmount: e.monthlyAmount };
+  return {
+    id: e.id,
+    group: e.category,
+    account: e.account,
+    property: e.property ?? undefined,
+    propertyId: e.propertyId ?? undefined,
+    label: e.label,
+    monthlyAmount: e.monthlyAmount,
+  };
 }
 
 export function toApiExpense(e: NewExpenseItem): NewApiExpense {
-  return { category: e.group, account: e.account, property: e.property ?? null, label: e.label, monthlyAmount: e.monthlyAmount };
+  return {
+    category: e.group,
+    account: e.account,
+    property: e.property ?? null,
+    propertyId: e.propertyId ?? null,
+    label: e.label,
+    monthlyAmount: e.monthlyAmount,
+  };
 }
 
 export function toDebt(d: ApiDebt): Debt {
@@ -64,11 +81,24 @@ export function toApiDebt(d: NewDebt): NewApiDebt {
 }
 
 export function toIncomeSource(i: ApiIncome): IncomeSource {
-  return { id: i.id, account: i.account, label: i.label, monthlyAmount: i.monthlyAmount, property: i.property ?? undefined };
+  return {
+    id: i.id,
+    account: i.account,
+    label: i.label,
+    monthlyAmount: i.monthlyAmount,
+    property: i.property ?? undefined,
+    propertyId: i.propertyId ?? undefined,
+  };
 }
 
 export function toApiIncome(i: NewIncomeSource): NewApiIncome {
-  return { account: i.account, label: i.label, monthlyAmount: i.monthlyAmount, property: i.property ?? null };
+  return {
+    account: i.account,
+    label: i.label,
+    monthlyAmount: i.monthlyAmount,
+    property: i.property ?? null,
+    propertyId: i.propertyId ?? null,
+  };
 }
 
 // Transfer tiene exactamente la misma forma en API y dominio.

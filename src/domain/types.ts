@@ -10,8 +10,10 @@ export interface IncomeSource {
   account: string;
   label: string;
   monthlyAmount: number;
-  /** Propiedad a la que corresponde este ingreso (p. ej. un alquiler), si aplica. */
+  /** Nota libre, sin relación con `Property` (a diferencia de `propertyId`). */
   property?: string;
+  /** Vínculo real a una `Property.id` — se limpia solo si esa propiedad se borra. */
+  propertyId?: string;
 }
 
 export type NewIncomeSource = Omit<IncomeSource, "id">;
@@ -22,7 +24,10 @@ export interface ExpenseItem {
   id: string;
   group: ExpenseGroup;
   account: string;
+  /** Nota libre, sin relación con `Property` (a diferencia de `propertyId`). */
   property?: string;
+  /** Vínculo real a una `Property.id` — se limpia solo si esa propiedad se borra. */
+  propertyId?: string;
   label: string;
   monthlyAmount: number;
 }

@@ -5,7 +5,15 @@ import { createFakeRepository } from "../test/fakeRepository.js";
 import { createExpenseUseCases } from "./expenses.js";
 
 function validExpense(overrides: Partial<NewExpense> = {}): NewExpense {
-  return { category: "Fijos", account: "ING", property: null, label: "Alquiler", monthlyAmount: 500, ...overrides };
+  return {
+    category: "Fijos",
+    account: "ING",
+    property: null,
+    propertyId: null,
+    label: "Alquiler",
+    monthlyAmount: 500,
+    ...overrides,
+  };
 }
 
 describe("createExpenseUseCases", () => {

@@ -702,33 +702,36 @@ describe("totalPropertyValue", () => {
 });
 
 describe("rentalProfitByProperty", () => {
-  it("agrupa ingresos y gastos etiquetados con la misma propiedad y calcula el neto", () => {
+  it("agrupa ingresos y gastos vinculados a la misma propiedad (por propertyId) y calcula el neto", () => {
     const profile = makeProfile({
-      incomes: [{ id: "1", account: "Ahorro", label: "Alquiler Riviera", monthlyAmount: 1200, property: "Riviera" }],
+      incomes: [{ id: "1", account: "Ahorro", label: "Alquiler Riviera", monthlyAmount: 1200, propertyId: "riviera" }],
       expenses: [
-        { id: "1", group: "Fijos", account: "Nomina", label: "Hipoteca", monthlyAmount: 400, property: "Riviera" },
-        { id: "2", group: "Fijos", account: "Nomina", label: "Comunidad", monthlyAmount: 60, property: "Riviera" },
+        { id: "1", group: "Fijos", account: "Nomina", label: "Hipoteca", monthlyAmount: 400, propertyId: "riviera" },
+        { id: "2", group: "Fijos", account: "Nomina", label: "Comunidad", monthlyAmount: 60, propertyId: "riviera" },
       ],
     });
     const result = rentalProfitByProperty(profile);
-    expect(result).toEqual([{ property: "Riviera", income: 1200, expenses: 460, net: 740 }]);
+    expect(result).toEqual([{ propertyId: "riviera", income: 1200, expenses: 460, net: 740 }]);
   });
 
   it("puede dar beneficio negativo si los gastos superan al ingreso", () => {
     const profile = makeProfile({
-      incomes: [{ id: "1", account: "Ahorro", label: "Alquiler", monthlyAmount: 300, property: "Villamuriel" }],
+      incomes: [{ id: "1", account: "Ahorro", label: "Alquiler", monthlyAmount: 300, propertyId: "villamuriel" }],
       expenses: [
-        { id: "1", group: "Fijos", account: "Nomina", label: "Hipoteca", monthlyAmount: 650, property: "Villamuriel" },
+        { id: "1", group: "Fijos", account: "Nomina", label: "Hipoteca", monthlyAmount: 650, propertyId: "villamuriel" },
       ],
     });
     const result = rentalProfitByProperty(profile);
-    expect(result.find((p) => p.property === "Villamuriel")?.net).toBe(-350);
+    expect(result.find((p) => p.propertyId === "villamuriel")?.net).toBe(-350);
   });
 
-  it("ignora ingresos y gastos sin propiedad etiquetada", () => {
+  it("ignora ingresos y gastos sin propiedad vinculada, incluida una nota libre sin propertyId", () => {
     const profile = makeProfile({
       incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 3000 }],
-      expenses: [{ id: "1", group: "Fijos", account: "Nomina", label: "Gastos generales", monthlyAmount: 500 }],
+      expenses: [
+        { id: "1", group: "Fijos", account: "Nomina", label: "Gastos generales", monthlyAmount: 500 },
+        { id: "2", group: "Fijos", account: "Nomina", label: "Con nota pero sin vínculo", monthlyAmount: 10, property: "Riviera" },
+      ],
     });
     expect(rentalProfitByProperty(profile)).toEqual([]);
   });
@@ -736,16 +739,26 @@ describe("rentalProfitByProperty", () => {
   it("no mezcla ingresos/gastos de propiedades distintas", () => {
     const profile = makeProfile({
       incomes: [
-        { id: "1", account: "A", label: "Alquiler Riviera", monthlyAmount: 1200, property: "Riviera" },
-        { id: "2", account: "A", label: "Alquiler Villamuriel", monthlyAmount: 300, property: "Villamuriel" },
+        { id: "1", account: "A", label: "Alquiler Riviera", monthlyAmount: 1200, propertyId: "riviera" },
+        { id: "2", account: "A", label: "Alquiler Villamuriel", monthlyAmount: 300, propertyId: "villamuriel" },
       ],
       expenses: [
-        { id: "1", group: "Fijos", account: "A", label: "Hipoteca Riviera", monthlyAmount: 400, property: "Riviera" },
+        { id: "1", group: "Fijos", account: "A", label: "Hipoteca Riviera", monthlyAmount: 400, propertyId: "riviera" },
       ],
     });
     const result = rentalProfitByProperty(profile);
-    expect(result.find((p) => p.property === "Riviera")).toEqual({ property: "Riviera", income: 1200, expenses: 400, net: 800 });
-    expect(result.find((p) => p.property === "Villamuriel")).toEqual({ property: "Villamuriel", income: 300, expenses: 0, net: 300 });
+    expect(result.find((p) => p.propertyId === "riviera")).toEqual({
+      propertyId: "riviera",
+      income: 1200,
+      expenses: 400,
+      net: 800,
+    });
+    expect(result.find((p) => p.propertyId === "villamuriel")).toEqual({
+      propertyId: "villamuriel",
+      income: 300,
+      expenses: 0,
+      net: 300,
+    });
   });
 });
 

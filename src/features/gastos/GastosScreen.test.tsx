@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ConfirmProvider } from "../../components/ConfirmProvider";
-import type { Account, FinancialProfile } from "../../domain/types";
+import type { Account, FinancialProfile, Property } from "../../domain/types";
 import { GastosScreen } from "./GastosScreen";
 
 function baseProfile(overrides: Partial<FinancialProfile> = {}): FinancialProfile {
@@ -18,6 +18,7 @@ function baseProfile(overrides: Partial<FinancialProfile> = {}): FinancialProfil
 }
 
 const accounts: Account[] = [{ id: "1", name: "ING" }];
+const properties: Property[] = [];
 
 function renderScreen(profile: FinancialProfile) {
   const handlers = {
@@ -33,7 +34,7 @@ function renderScreen(profile: FinancialProfile) {
   };
   render(
     <ConfirmProvider>
-      <GastosScreen profile={profile} accounts={accounts} {...handlers} />
+      <GastosScreen profile={profile} accounts={accounts} properties={properties} {...handlers} />
     </ConfirmProvider>,
   );
   return handlers;

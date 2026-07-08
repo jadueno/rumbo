@@ -111,6 +111,7 @@ export default function App() {
                 <GastosScreen
                   profile={data.profile}
                   accounts={data.accounts}
+                  properties={data.properties}
                   onAddAccount={data.addAccount}
                   onRemoveAccount={data.removeAccount}
                   onAddIncome={data.addIncome}

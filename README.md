@@ -99,7 +99,7 @@ Notas:
 - El **fondo de emergencia y las inversiones** (pantalla "Ahorro") funcionan igual que las deudas pero al revés: se vinculan a una cuenta y guardan un saldo de partida + el mes al que corresponde, y la app suma sola cada mes el balance neto de esa cuenta desde entonces. El fondo de emergencia es como mucho uno; las inversiones pueden ser varias, con su propio alta/baja.
 - El **score de salud financiera** (pantalla "Resumen") combina tasa de ahorro, carga de deuda, progreso del fondo de emergencia y dinero ocioso en un único número 0-100, con desglose explicado factor a factor.
 - El **simulador** (pantalla "Simulador") deja tocar ingresos, gastos y aportación extra a ahorro con sliders y ver el impacto en cashflow, tasa de ahorro y score al momento, sin guardar nada.
-- Las **propiedades** (pantalla "Ahorro") guardan nombre + valor estimado de mercado, que suma al patrimonio neto. Si dan alquiler, se etiqueta el ingreso (y los gastos) con el mismo nombre de propiedad para ver el beneficio neto — esa renta ya cuenta como ingreso normal, no se vuelve a sumar al patrimonio.
+- Las **propiedades** (pantalla "Ahorro") guardan nombre + valor estimado de mercado, que suma al patrimonio neto. Si dan alquiler, se vincula el ingreso (y los gastos) a esa propiedad real desde un desplegable — para ver el beneficio neto — esa renta ya cuenta como ingreso normal, no se vuelve a sumar al patrimonio.
 
 ## Estructura
 

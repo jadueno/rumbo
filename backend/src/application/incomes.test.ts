@@ -5,7 +5,7 @@ import { createFakeRepository } from "../test/fakeRepository.js";
 import { createIncomeUseCases } from "./incomes.js";
 
 function validIncome(overrides: Partial<NewIncome> = {}): NewIncome {
-  return { account: "Nómina", label: "Salario", monthlyAmount: 2000, property: null, ...overrides };
+  return { account: "Nómina", label: "Salario", monthlyAmount: 2000, property: null, propertyId: null, ...overrides };
 }
 
 describe("createIncomeUseCases", () => {

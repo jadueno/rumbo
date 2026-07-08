@@ -18,8 +18,11 @@ export interface Income {
   account: string;
   label: string;
   monthlyAmount: number;
-  /** Propiedad a la que corresponde este ingreso (p. ej. un alquiler), o null si no aplica. */
+  /** Nota libre, sin relación con `properties` (a diferencia de `propertyId`). */
   property: string | null;
+  /** FK real a `properties.id` (ON DELETE SET NULL) — a diferencia de `property`, no se
+   * queda huérfana si se borra la propiedad. */
+  propertyId: string | null;
 }
 
 export type NewIncome = Omit<Income, "id">;
@@ -38,7 +41,11 @@ export interface Expense {
   id: string;
   category: ExpenseCategory;
   account: string;
+  /** Nota libre, sin relación con `properties` (a diferencia de `propertyId`). */
   property: string | null;
+  /** FK real a `properties.id` (ON DELETE SET NULL) — a diferencia de `property`, no se
+   * queda huérfana si se borra la propiedad. */
+  propertyId: string | null;
   label: string;
   monthlyAmount: number;
 }

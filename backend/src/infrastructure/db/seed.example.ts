@@ -17,14 +17,28 @@ import type {
 const accounts: NewAccount[] = [{ name: "Cuenta Nómina" }, { name: "Cuenta Ahorro" }];
 
 const incomes: NewIncome[] = [
-  { account: "Cuenta Nómina", label: "Sueldo Neto mensual", monthlyAmount: 2000, property: null },
+  { account: "Cuenta Nómina", label: "Sueldo Neto mensual", monthlyAmount: 2000, property: null, propertyId: null },
 ];
 
 const properties: NewProperty[] = [{ name: "Piso alquilado", estimatedValue: 120000 }];
 
 const expenses: NewExpense[] = [
-  { category: "Fijos", account: "Cuenta Nómina", property: null, label: "Alquiler", monthlyAmount: 700 },
-  { category: "Variables", account: "Cuenta Nómina", property: null, label: "Ocio", monthlyAmount: 150 },
+  {
+    category: "Fijos",
+    account: "Cuenta Nómina",
+    property: null,
+    propertyId: null,
+    label: "Alquiler",
+    monthlyAmount: 700,
+  },
+  {
+    category: "Variables",
+    account: "Cuenta Nómina",
+    property: null,
+    propertyId: null,
+    label: "Ocio",
+    monthlyAmount: 150,
+  },
 ];
 
 const debts: NewDebt[] = [

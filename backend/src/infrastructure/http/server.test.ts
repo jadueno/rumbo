@@ -173,6 +173,26 @@ describe("/expenses (rutas CRUD genéricas)", () => {
     });
     expect(res.statusCode).toBe(404);
   });
+
+  it("al borrar la propiedad vinculada, el gasto sobrevive con propertyId a null (ON DELETE SET NULL)", async () => {
+    const property = (
+      await app.inject({ method: "POST", url: "/properties", payload: { name: "Riviera", estimatedValue: 150000 } })
+    ).json();
+    const expense = (
+      await app.inject({
+        method: "POST",
+        url: "/expenses",
+        payload: { ...payload, propertyId: property.id },
+      })
+    ).json();
+    expect(expense.propertyId).toBe(property.id);
+
+    const remove = await app.inject({ method: "DELETE", url: `/properties/${property.id}` });
+    expect(remove.statusCode).toBe(204);
+
+    const stillThere = (await app.inject({ method: "GET", url: "/expenses" })).json();
+    expect(stillThere).toContainEqual(expect.objectContaining({ id: expense.id, propertyId: null }));
+  });
 });
 
 describe("/savings-trackers", () => {

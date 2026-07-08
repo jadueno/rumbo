@@ -249,9 +249,9 @@ export function AhorroScreen({
           </Button>
         </div>
         <p className="mt-2 text-xs text-[var(--text-muted)]">
-          Su valor de mercado suma a tu patrimonio. Si dan alquiler, etiqueta el ingreso con el mismo nombre de
-          propiedad (en "Ingresos y Gastos") para ver aquí el beneficio neto — esa renta ya cuenta como ingreso
-          normal, no se vuelve a sumar al patrimonio.
+          Su valor de mercado suma a tu patrimonio. Si dan alquiler, vincula el ingreso y los gastos a esta propiedad
+          (en "Ingresos y Gastos") para ver aquí el beneficio neto — esa renta ya cuenta como ingreso normal, no se
+          vuelve a sumar al patrimonio.
         </p>
 
         {showAddProperty && <PropertyForm onSubmit={onAddProperty} onCancel={() => setShowAddProperty(false)} />}
@@ -261,7 +261,7 @@ export function AhorroScreen({
         ) : (
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {properties.map((property) => {
-              const profit = rentalProfits.find((p) => p.property === property.name);
+              const profit = rentalProfits.find((p) => p.propertyId === property.id);
               return (
                 <div key={property.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
                   <div className="flex items-start justify-between gap-2">

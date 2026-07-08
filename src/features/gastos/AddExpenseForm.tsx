@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ExpenseGroup, NewExpenseItem } from "../../domain/types";
+import type { ExpenseGroup, NewExpenseItem, Property } from "../../domain/types";
 import { Field, inputClass } from "../../components/Field";
 import { Button } from "../../components/Button";
 
@@ -10,16 +10,19 @@ const categories: { value: ExpenseGroup; label: string }[] = [
 
 export function AddExpenseForm({
   accountNames,
+  properties,
   onSubmit,
   onCancel,
 }: {
   accountNames: string[];
+  properties: Property[];
   onSubmit: (expense: NewExpenseItem) => Promise<void>;
   onCancel: () => void;
 }) {
   const [account, setAccount] = useState(accountNames[0] ?? "");
   const [category, setCategory] = useState<ExpenseGroup>("Fijos");
   const [property, setProperty] = useState("");
+  const [propertyId, setPropertyId] = useState("");
   const [label, setLabel] = useState("");
   const [monthlyAmount, setMonthlyAmount] = useState<number | "">("");
   const [submitting, setSubmitting] = useState(false);
@@ -37,6 +40,7 @@ export function AddExpenseForm({
             account,
             group: category,
             property: property || undefined,
+            propertyId: propertyId || undefined,
             label,
             monthlyAmount: Number(monthlyAmount),
           });
@@ -75,6 +79,16 @@ export function AddExpenseForm({
             {categories.map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Vincular a una propiedad (opcional)">
+          <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)} className={inputClass}>
+            <option value="">Ninguna</option>
+            {properties.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
               </option>
             ))}
           </select>

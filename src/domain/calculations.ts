@@ -237,7 +237,7 @@ export function currentNetWorth(
 }
 
 export interface PropertyRentalProfit {
-  property: string;
+  propertyId: string;
   income: number;
   expenses: number;
   /** income - expenses: puede ser negativo si la propiedad da pérdidas. */
@@ -245,21 +245,21 @@ export interface PropertyRentalProfit {
 }
 
 /**
- * Beneficio neto mensual por propiedad: agrupa los ingresos y gastos que ya
- * llevan esa propiedad etiquetada (mismo campo `property` que ya existía en
- * los gastos, ahora también disponible en los ingresos). Puramente
- * informativo — no se sustrae ni se suma a ningún otro cálculo, ya que ese
- * dinero ya está contado en totalMonthlyIncome/totalMonthlyExpenses.
+ * Beneficio neto mensual por propiedad: agrupa los ingresos y gastos vinculados a una
+ * `Property` real por `propertyId` (relación de verdad, no comparación de texto contra
+ * `property`, que es solo una nota libre sin relación). Puramente informativo — no se
+ * sustrae ni se suma a ningún otro cálculo, ya que ese dinero ya está contado en
+ * totalMonthlyIncome/totalMonthlyExpenses.
  */
 export function rentalProfitByProperty(profile: FinancialProfile): PropertyRentalProfit[] {
-  const names = new Set<string>();
-  for (const i of profile.incomes) if (i.property) names.add(i.property);
-  for (const e of profile.expenses) if (e.property) names.add(e.property);
+  const ids = new Set<string>();
+  for (const i of profile.incomes) if (i.propertyId) ids.add(i.propertyId);
+  for (const e of profile.expenses) if (e.propertyId) ids.add(e.propertyId);
 
-  return Array.from(names).map((property) => {
-    const income = sum(profile.incomes.filter((i) => i.property === property).map((i) => i.monthlyAmount));
-    const expenses = sum(profile.expenses.filter((e) => e.property === property).map((e) => e.monthlyAmount));
-    return { property, income, expenses, net: income - expenses };
+  return Array.from(ids).map((propertyId) => {
+    const income = sum(profile.incomes.filter((i) => i.propertyId === propertyId).map((i) => i.monthlyAmount));
+    const expenses = sum(profile.expenses.filter((e) => e.propertyId === propertyId).map((e) => e.monthlyAmount));
+    return { propertyId, income, expenses, net: income - expenses };
   });
 }
 

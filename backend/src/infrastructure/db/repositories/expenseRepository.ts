@@ -7,6 +7,7 @@ interface ExpenseRow {
   category: ExpenseCategory;
   account: string;
   property: string | null;
+  property_id: string | null;
   label: string;
   monthly_amount: string;
 }
@@ -17,6 +18,7 @@ function toExpense(row: ExpenseRow): Expense {
     category: row.category,
     account: row.account,
     property: row.property,
+    propertyId: row.property_id,
     label: row.label,
     monthlyAmount: Number(row.monthly_amount),
   };
@@ -26,17 +28,17 @@ export function createExpenseRepository(pool: Pool): Repository<Expense, NewExpe
   return {
     async list() {
       const { rows } = await pool.query<ExpenseRow>(
-        "select id, category, account, property, label, monthly_amount from expenses order by created_at",
+        "select id, category, account, property, property_id, label, monthly_amount from expenses order by created_at",
       );
       return rows.map(toExpense);
     },
 
     async create(entity) {
       const { rows } = await pool.query<ExpenseRow>(
-        `insert into expenses (category, account, property, label, monthly_amount)
-         values ($1, $2, $3, $4, $5)
-         returning id, category, account, property, label, monthly_amount`,
-        [entity.category, entity.account, entity.property, entity.label, entity.monthlyAmount],
+        `insert into expenses (category, account, property, property_id, label, monthly_amount)
+         values ($1, $2, $3, $4, $5, $6)
+         returning id, category, account, property, property_id, label, monthly_amount`,
+        [entity.category, entity.account, entity.property, entity.propertyId, entity.label, entity.monthlyAmount],
       );
       return toExpense(rows[0]);
     },
@@ -44,10 +46,10 @@ export function createExpenseRepository(pool: Pool): Repository<Expense, NewExpe
     async update(id, entity) {
       const { rows } = await pool.query<ExpenseRow>(
         `update expenses
-         set category = $1, account = $2, property = $3, label = $4, monthly_amount = $5, updated_at = now()
-         where id = $6
-         returning id, category, account, property, label, monthly_amount`,
-        [entity.category, entity.account, entity.property, entity.label, entity.monthlyAmount, id],
+         set category = $1, account = $2, property = $3, property_id = $4, label = $5, monthly_amount = $6, updated_at = now()
+         where id = $7
+         returning id, category, account, property, property_id, label, monthly_amount`,
+        [entity.category, entity.account, entity.property, entity.propertyId, entity.label, entity.monthlyAmount, id],
       );
       return rows[0] ? toExpense(rows[0]) : null;
     },
