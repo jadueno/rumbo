@@ -8,8 +8,9 @@ import {
   type RawMovement,
 } from "../../domain/statementImport";
 import { readStatementSections } from "../../data/readStatementFile";
-import { Field, focusRing, inputClass } from "../../components/Field";
+import { Field, inputClass } from "../../components/Field";
 import { Button } from "../../components/Button";
+import { Modal } from "../../components/Modal";
 
 interface Props {
   accountNames: string[];
@@ -77,87 +78,67 @@ export function ImportStatementModal({ accountNames, expenses, onAddExpense, onC
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Importar movimientos bancarios"
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/50 p-4 backdrop-blur-sm"
-      style={{ overscrollBehavior: "contain" }}
-      onKeyDown={(e) => e.key === "Escape" && onClose()}
+    <Modal
+      title="Importar movimientos bancarios"
+      description={
+        <>
+          Sube el extracto del banco (varios meses o varios archivos) para detectar gastos que no tengas apuntados.
+          En <strong>.xls</strong>/<strong>.xlsx</strong>/<strong>.csv</strong> funciona con cualquier banco (ING,
+          Ibercaja...); en <strong>.pdf</strong>, de momento solo Bankinter y BBVA. Si el archivo trae varias
+          cuentas, podrás asignar cada una a la cuenta de la app que corresponda.
+        </>
+      }
+      onClose={onClose}
     >
-      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-[1.75rem] border border-[var(--border)] bg-[var(--surface-1)] shadow-float">
-        <div className="flex items-start justify-between border-b border-[var(--gridline)] p-5">
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Importar movimientos bancarios</h2>
-            <p className="text-xs text-[var(--text-muted)]">
-              Sube el extracto del banco (varios meses o varios archivos) para detectar gastos que no tengas
-              apuntados. En <strong>.xls</strong>/<strong>.xlsx</strong>/<strong>.csv</strong> funciona con cualquier
-              banco (ING, Ibercaja...); en <strong>.pdf</strong>, de momento solo Bankinter y BBVA. Si el archivo trae
-              varias cuentas, podrás asignar cada una a la cuenta de la app que corresponda.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] ${focusRing}`}
-          >
-            ×
-          </button>
-        </div>
+      <Field label="Archivo(s) (.xls, .xlsx, .csv o .pdf)">
+        <input
+          type="file"
+          multiple
+          accept=".xls,.xlsx,.csv,.pdf"
+          onChange={handleFiles}
+          className={`${inputClass} file:mr-3 file:rounded-full file:border-0 file:bg-[var(--gridline)] file:px-3 file:py-1 file:text-xs file:font-semibold file:text-[var(--text-primary)]`}
+        />
+      </Field>
 
-        <div className="flex-1 overflow-y-auto p-5">
-          <Field label="Archivo(s) (.xls, .xlsx, .csv o .pdf)">
+      {status === "loading" && <p className="mt-4 text-sm text-[var(--text-muted)]">Leyendo archivo…</p>}
+      {error && (
+        <p className="mt-4 text-sm" style={{ color: "var(--status-critical)" }}>
+          {error}
+        </p>
+      )}
+
+      {sections.length > 0 && (
+        <div className="mt-5 flex flex-col gap-6">
+          <label className="flex items-center gap-1.5 self-start text-xs text-[var(--text-muted)]">
             <input
-              type="file"
-              multiple
-              accept=".xls,.xlsx,.csv,.pdf"
-              onChange={handleFiles}
-              className={`${inputClass} file:mr-3 file:rounded-full file:border-0 file:bg-[var(--gridline)] file:px-3 file:py-1 file:text-xs file:font-semibold file:text-[var(--text-primary)]`}
+              type="checkbox"
+              checked={onlyRecurring}
+              onChange={(e) => setOnlyRecurring(e.target.checked)}
             />
-          </Field>
+            Solo gastos que se repiten en 2+ meses
+          </label>
 
-          {status === "loading" && <p className="mt-4 text-sm text-[var(--text-muted)]">Leyendo archivo…</p>}
-          {error && (
-            <p className="mt-4 text-sm" style={{ color: "var(--status-critical)" }}>
-              {error}
-            </p>
-          )}
-
-          {sections.length > 0 && (
-            <div className="mt-5 flex flex-col gap-6">
-              <label className="flex items-center gap-1.5 self-start text-xs text-[var(--text-muted)]">
-                <input
-                  type="checkbox"
-                  checked={onlyRecurring}
-                  onChange={(e) => setOnlyRecurring(e.target.checked)}
-                />
-                Solo gastos que se repiten en 2+ meses
-              </label>
-
-              {sections.map((section) => (
-                <SectionResults
-                  key={section.sourceLabel}
-                  section={section}
-                  accountNames={accountNames}
-                  assignedAccount={sectionAccounts[section.sourceLabel] ?? accountNames[0] ?? ""}
-                  onAssignAccount={(account) =>
-                    setSectionAccounts((prev) => ({ ...prev, [section.sourceLabel]: account }))
-                  }
-                  expenses={expenses}
-                  onlyRecurring={onlyRecurring}
-                  addedKeys={addedKeys}
-                  onAdd={async (conceptKey, expense) => {
-                    await onAddExpense(expense);
-                    setAddedKeys((prev) => new Set(prev).add(`${section.sourceLabel}::${conceptKey}`));
-                  }}
-                />
-              ))}
-            </div>
-          )}
+          {sections.map((section) => (
+            <SectionResults
+              key={section.sourceLabel}
+              section={section}
+              accountNames={accountNames}
+              assignedAccount={sectionAccounts[section.sourceLabel] ?? accountNames[0] ?? ""}
+              onAssignAccount={(account) =>
+                setSectionAccounts((prev) => ({ ...prev, [section.sourceLabel]: account }))
+              }
+              expenses={expenses}
+              onlyRecurring={onlyRecurring}
+              addedKeys={addedKeys}
+              onAdd={async (conceptKey, expense) => {
+                await onAddExpense(expense);
+                setAddedKeys((prev) => new Set(prev).add(`${section.sourceLabel}::${conceptKey}`));
+              }}
+            />
+          ))}
         </div>
-      </div>
-    </div>
+      )}
+    </Modal>
   );
 }
 

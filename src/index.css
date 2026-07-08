@@ -67,6 +67,19 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
+/* iOS Safari (y algunos Android) hacen zoom automático al enfocar un campo con
+   font-size < 16px, dejando la vista desplazada al desenfocar — no es un bug de un
+   input concreto, pasa con cualquiera por debajo de ese umbral. Se fuerza aquí a nivel
+   de elemento (no de clase) para que cubra todos los inputs/selects/textareas actuales
+   y cualquiera que se añada más adelante, sin depender de que use `inputClass`. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* Fondo ambiental sutil: un resplandor de marca fijo detrás del contenido, muy discreto,
    para dar profundidad sin distraer ni afectar la legibilidad. */
 .app-shell {

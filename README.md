@@ -94,7 +94,7 @@ Notas:
 ## Datos
 
 - **Ingresos, gastos, deudas, transferencias y cuentas**: viven en Postgres, se editan desde la propia app (botones "+ Añadir..." y "Eliminar" en cada pantalla, con modal de confirmación). El backend valida (importes no negativos, categorías válidas, no se puede borrar una cuenta con movimientos asociados) antes de guardar.
-- **Perfil (nombre, fecha de nacimiento, objetivo del fondo de emergencia)**: pantalla "Perfil", vive en Postgres como el resto — la edad se calcula sola a partir de la fecha de nacimiento, no se guarda como número suelto.
+- **Perfil (nombre, fecha de nacimiento, objetivo del fondo de emergencia)**: vive en Postgres como el resto — la edad se calcula sola a partir de la fecha de nacimiento, no se guarda como número suelto. No tiene su propia sección en el menú (ya hay bastantes): se edita desde el botón "Perfil" de la pantalla "Resumen", que abre un modal.
 - El **saldo pendiente de cada deuda** no se edita a mano: cada deuda guarda su saldo conocido y el mes al que corresponde (`balanceAsOf`), y la app resta una cuota por cada mes transcurrido desde entonces.
 - El **fondo de emergencia y las inversiones** (pantalla "Ahorro") funcionan igual que las deudas pero al revés: se vinculan a una cuenta y guardan un saldo de partida + el mes al que corresponde, y la app suma sola cada mes el balance neto de esa cuenta desde entonces. El fondo de emergencia es como mucho uno; las inversiones pueden ser varias, con su propio alta/baja.
 - El **score de salud financiera** (pantalla "Resumen") combina tasa de ahorro, carga de deuda, progreso del fondo de emergencia y dinero ocioso en un único número 0-100, con desglose explicado factor a factor.
@@ -105,7 +105,8 @@ Notas:
 
 - `src/domain/` — tipos y cálculos financieros puros (sin UI, sin red).
 - `src/data/` — `api.ts` + `useFinancialData.ts` (cliente HTTP y estado de la app).
-- `src/features/` — una pantalla por carpeta (resumen, gastos [ingresos+gastos+transferencias+cuentas], deudas, ahorro, simulador, historial, recomendaciones, perfil), con sus formularios de alta.
+- `src/features/` — una pantalla por carpeta (resumen, gastos [ingresos+gastos+transferencias+cuentas], deudas, ahorro, simulador, historial, recomendaciones), con sus formularios de alta. `perfil/` es la excepción: no es una sección de navegación, es el contenido del modal que abre el botón "Perfil" de "Resumen".
+- `src/components/Modal.tsx` — cascarón de modal compartido (overlay, cabecera, cerrar), usado por el modal de Perfil y el de importar extractos bancarios.
 - `src/components/` — piezas de UI reutilizables (incluye `ConfirmProvider`, el modal de confirmación de borrados).
 - `backend/` — API en Node + TypeScript (Fastify) sobre Postgres, arquitectura hexagonal (`domain/` → `application/` → `infrastructure/`). Ver `backend/README.md`.
 - `docker-compose.yml` — Postgres local, puerto 5433.

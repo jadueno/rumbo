@@ -1,4 +1,5 @@
-import type { Account, FinancialProfile, Property, SavingsTracker } from "../../domain/types";
+import { useState } from "react";
+import type { Account, FinancialProfile, Profile, Property, SavingsTracker } from "../../domain/types";
 import {
   balanceByAccount,
   buildRecommendations,
@@ -20,19 +21,27 @@ import { ProgressBar } from "../../components/ProgressBar";
 import { RecommendationTimeline } from "../../components/RecommendationTimeline";
 import { IconBadge } from "../../components/IconBadge";
 import { FinancialHealthCard } from "../../components/FinancialHealthCard";
-import { ExpenseIcon, SavingsIcon, TipIcon } from "../../components/icons";
+import { Modal } from "../../components/Modal";
+import { Button } from "../../components/Button";
+import { ExpenseIcon, SavingsIcon, TipIcon, ProfileIcon } from "../../components/icons";
+import { ProfileScreen } from "../perfil/ProfileScreen";
 
 export function ResumenScreen({
   profile,
   accounts,
   trackers,
   properties,
+  rawProfile,
+  onUpdateProfile,
 }: {
   profile: FinancialProfile;
   accounts: Account[];
   trackers: SavingsTracker[];
   properties: Property[];
+  rawProfile: Profile | null;
+  onUpdateProfile: (entity: Profile) => Promise<void>;
 }) {
+  const [showProfile, setShowProfile] = useState(false);
   const income = totalMonthlyIncome(profile);
   const expenses = totalMonthlyExpenses(profile);
   const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
@@ -50,9 +59,17 @@ export function ResumenScreen({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[var(--text-primary)] sm:text-4xl">Resumen</h1>
-        <p className="text-base font-normal text-[var(--text-secondary)]">Cómo va tu economía este mes.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[var(--text-primary)] sm:text-4xl">Resumen</h1>
+          <p className="text-base font-normal text-[var(--text-secondary)]">
+            {rawProfile?.name ? `Hola ${rawProfile.name}, así` : "Así"} va tu economía este mes.
+          </p>
+        </div>
+        <Button variant="tint" tone="ink" size="sm" onClick={() => setShowProfile(true)}>
+          <ProfileIcon className="size-4 shrink-0" />
+          Perfil
+        </Button>
       </div>
 
       {/* Hero: el dato más importante del mes, destacado en el acento de marca. */}
@@ -153,6 +170,16 @@ export function ResumenScreen({
           <RecommendationTimeline items={topRecommendations} />
         )}
       </Card>
+
+      {showProfile && rawProfile && (
+        <Modal
+          title="Perfil"
+          description="Tu nombre y fecha de nacimiento se usan para calcular tu edad, que entra en el patrimonio recomendado de aquí arriba."
+          onClose={() => setShowProfile(false)}
+        >
+          <ProfileScreen profile={rawProfile} onUpdateProfile={onUpdateProfile} />
+        </Modal>
+      )}
     </div>
   );
 }
