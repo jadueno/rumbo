@@ -83,4 +83,17 @@ describe("GastosScreen", () => {
     expect(handlers.onRemoveExpense).not.toHaveBeenCalled();
     expect(screen.getByText("Alquiler")).toBeInTheDocument();
   });
+
+  it("también se puede borrar un ingreso desde la tarjeta de su cuenta, no solo desde la lista de arriba", async () => {
+    const user = userEvent.setup();
+    const profile = baseProfile({
+      incomes: [{ id: "i1", account: "ING", label: "Nómina", monthlyAmount: 2000 }],
+    });
+    const handlers = renderScreen(profile);
+
+    await user.click(screen.getByRole("button", { name: "Eliminar ingreso Nómina de ING" }));
+    await user.click(screen.getByRole("button", { name: "Eliminar" }));
+
+    expect(handlers.onRemoveIncome).toHaveBeenCalledWith("i1");
+  });
 });

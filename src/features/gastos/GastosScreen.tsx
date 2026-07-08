@@ -285,8 +285,14 @@ export function GastosScreen({
                           {i.label}
                           {i.property && <span className="ml-2 text-xs text-[var(--text-muted)]">({i.property})</span>}
                         </span>
-                        <span className="tabular-nums font-medium" style={{ color: "var(--series-income)" }}>
-                          +{formatEUR(i.monthlyAmount)}
+                        <span className="flex items-center gap-2">
+                          <span className="tabular-nums font-medium" style={{ color: "var(--series-income)" }}>
+                            +{formatEUR(i.monthlyAmount)}
+                          </span>
+                          <DeleteButton
+                            onClick={() => handleRemoveIncome(i.label, i.id)}
+                            label={`Eliminar ingreso ${i.label} de ${account}`}
+                          />
                         </span>
                       </li>
                     ))}
