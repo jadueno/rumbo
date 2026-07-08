@@ -62,10 +62,10 @@ export function AddDebtForm({
               className={inputClass}
             />
           </Field>
-          <Field label="Hasta (MM/YYYY)">
+          <Field label="Hasta">
             <input
               required
-              placeholder="MM/AAAA"
+              type="month"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               className={inputClass}

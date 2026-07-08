@@ -9,7 +9,6 @@ function baseProfile(overrides: Partial<FinancialProfile> = {}): FinancialProfil
     incomes: [],
     expenses: [],
     transfers: [],
-    accountFlows: [],
     debts: [],
     emergencyFund: { targetMonths: 3 },
     ...overrides,

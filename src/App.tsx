@@ -7,11 +7,29 @@ import { AhorroScreen } from "./features/ahorro/AhorroScreen";
 import { RecomendacionesScreen } from "./features/recomendaciones/RecomendacionesScreen";
 import { SimuladorScreen } from "./features/simulador/SimuladorScreen";
 import { HistorialScreen } from "./features/historial/HistorialScreen";
-import { HomeIcon, ExpenseIcon, DebtIcon, SavingsIcon, TipIcon, SimulatorIcon, TrendIcon } from "./components/icons";
+import { ProfileScreen } from "./features/perfil/ProfileScreen";
+import {
+  HomeIcon,
+  ExpenseIcon,
+  DebtIcon,
+  SavingsIcon,
+  TipIcon,
+  SimulatorIcon,
+  TrendIcon,
+  ProfileIcon,
+} from "./components/icons";
 import { LoadingState } from "./components/LoadingState";
 import { BrandMark } from "./components/BrandMark";
 
-type Section = "resumen" | "gastos" | "deudas" | "ahorro" | "recomendaciones" | "simulador" | "historial";
+type Section =
+  | "resumen"
+  | "gastos"
+  | "deudas"
+  | "ahorro"
+  | "recomendaciones"
+  | "simulador"
+  | "historial"
+  | "perfil";
 
 const sections: {
   id: Section;
@@ -26,6 +44,7 @@ const sections: {
   { id: "simulador", label: "Simulador", shortLabel: "Simular", icon: SimulatorIcon },
   { id: "historial", label: "Historial", shortLabel: "Historial", icon: TrendIcon },
   { id: "recomendaciones", label: "Recomendaciones", shortLabel: "Consejos", icon: TipIcon },
+  { id: "perfil", label: "Perfil", shortLabel: "Perfil", icon: ProfileIcon },
 ];
 
 export default function App() {
@@ -142,6 +161,9 @@ export default function App() {
                   trackers={data.trackers}
                   properties={data.properties}
                 />
+              )}
+              {section === "perfil" && data.rawProfile && (
+                <ProfileScreen profile={data.rawProfile} onUpdateProfile={data.updateProfile} />
               )}
             </>
           )}

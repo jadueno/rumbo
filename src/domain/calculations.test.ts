@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   balanceByAccount,
   buildRecommendations,
+  calculateAge,
   currentEmergencyFundBalance,
   currentNetWorth,
   deliberateSavingsAndInvestment,
@@ -37,7 +38,6 @@ function makeProfile(overrides: Partial<FinancialProfile> = {}): FinancialProfil
     incomes: [],
     expenses: [],
     transfers: [],
-    accountFlows: [],
     debts: [],
     emergencyFund: { targetMonths: 3 },
     ...overrides,
@@ -128,6 +128,33 @@ describe("balanceByAccount", () => {
     });
     const balances = balanceByAccount(profile);
     expect(balances.filter((b) => b.account === "Nomina")).toHaveLength(1);
+  });
+
+  it("no muestra una cuenta que ya no está en masterAccounts ni tiene movimientos (regresión: cuentas fantasma)", () => {
+    // Antes existía "accountFlows" (config estática en finances.ts) como fuente extra de
+    // nombres de cuenta: si una cuenta se borraba pero seguía en esa config, reaparecía
+    // aquí como una tarjeta fantasma sin movimientos y sin botón de borrar (ya no había
+    // Account real para ella). Ahora masterAccounts (las cuentas reales) es la única fuente
+    // que puede añadir una cuenta sin movimientos.
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 100 }],
+    });
+    const balances = balanceByAccount(profile, ["Nomina"]);
+    expect(balances.map((b) => b.account)).toEqual(["Nomina"]);
+  });
+});
+
+describe("calculateAge", () => {
+  it("calcula la edad cuando ya ha pasado el cumpleaños este año", () => {
+    expect(calculateAge("1990-01-15", new Date(2026, 5, 1))).toBe(36);
+  });
+
+  it("no suma el año todavía si el cumpleaños no ha llegado este año", () => {
+    expect(calculateAge("1990-12-15", new Date(2026, 5, 1))).toBe(35);
+  });
+
+  it("cuenta el cumpleaños el mismo día", () => {
+    expect(calculateAge("1990-06-01", new Date(2026, 5, 1))).toBe(36);
   });
 });
 

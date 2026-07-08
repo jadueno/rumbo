@@ -31,7 +31,6 @@ playwright/.cache
 *.sw?
 
 # Datos financieros personales reales, nunca versionar
-src/data/finances.ts
 backend/src/infrastructure/db/seed.ts
 
 # Credenciales locales

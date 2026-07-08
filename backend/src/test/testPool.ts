@@ -1,6 +1,9 @@
 import "dotenv/config";
 import { Pool } from "pg";
 
+// "profile" no está aquí a propósito: es una tabla singleton (siempre exactamente una
+// fila, sembrada una vez por la migración de seed), no una colección de fixtures de test
+// que tenga sentido vaciar entre tests.
 const TABLES = [
   "transfers",
   "debts",

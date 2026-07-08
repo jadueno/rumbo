@@ -28,7 +28,7 @@ const expenses: NewExpense[] = [
 ];
 
 const debts: NewDebt[] = [
-  { name: "Préstamo coche", monthlyPayment: 150, dueDate: "01/2028", remainingBalance: 3000, balanceAsOf: null },
+  { name: "Préstamo coche", monthlyPayment: 150, dueDate: "2028-01", remainingBalance: 3000, balanceAsOf: null },
 ];
 
 const transfers: NewTransfer[] = [

@@ -112,3 +112,12 @@ export function TrendIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function ProfileIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 20c1.2-3.5 4.2-5.5 7.5-5.5s6.3 2 7.5 5.5" />
+    </svg>
+  );
+}

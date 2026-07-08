@@ -33,3 +33,11 @@ export function createCrudClient<T, TNew>(path: string) {
     remove: (id: string) => request<void>(`${path}/${id}`, { method: "DELETE" }),
   };
 }
+
+/** Cliente para un recurso singleton sin id (GET/PUT), como /profile. */
+export function createSingletonClient<T>(path: string) {
+  return {
+    get: () => request<T>(path),
+    update: (entity: T) => request<T>(path, { method: "PUT", body: JSON.stringify(entity) }),
+  };
+}

@@ -18,17 +18,18 @@ export interface AccountBalance {
 }
 
 /**
- * Ingresos, gastos, transferencias y balance agrupados por cuenta, en el
- * orden en que aparecen las cuentas en el perfil. El balance ya tiene en
- * cuenta las transferencias entre cuentas (una cuenta puede tener superávit
- * en ingresos-gastos pero balance bajo porque ese dinero se transfiere fuera).
+ * Ingresos, gastos, transferencias y balance agrupados por cuenta, en el orden en que
+ * aparecen en `masterAccounts` (las cuentas reales de la app) seguido de cualquier otra
+ * mencionada en movimientos. Importante: solo `masterAccounts` puede añadir una cuenta sin
+ * movimientos — si una cuenta se borra, deja de aparecer aquí (no hay ninguna fuente estática
+ * que la resucite). El balance ya tiene en cuenta las transferencias entre cuentas (una cuenta
+ * puede tener superávit en ingresos-gastos pero balance bajo porque ese dinero se transfiere fuera).
  */
 export function balanceByAccount(profile: FinancialProfile, masterAccounts: string[] = []): AccountBalance[] {
   const accounts: string[] = [...masterAccounts];
   const add = (a: string) => {
     if (!accounts.includes(a)) accounts.push(a);
   };
-  for (const a of profile.accountFlows) add(a.account);
   for (const i of profile.incomes) add(i.account);
   for (const e of profile.expenses) add(e.account);
   for (const t of profile.transfers) {
@@ -152,6 +153,19 @@ export function emergencyFundProgress(profile: FinancialProfile, currentBalance:
 export function monthsElapsedSince(yyyyMM: string, today: Date = new Date()): number {
   const [year, month] = yyyyMM.split("-").map(Number);
   return Math.max(0, (today.getFullYear() - year) * 12 + (today.getMonth() + 1 - month));
+}
+
+/**
+ * Edad en años a partir de una fecha de nacimiento "YYYY-MM-DD", contando el cumpleaños
+ * de este año solo si ya ha pasado (no una simple resta de años).
+ */
+export function calculateAge(birthDate: string, today: Date = new Date()): number {
+  const [year, month, day] = birthDate.split("-").map(Number);
+  let age = today.getFullYear() - year;
+  const hasHadBirthdayThisYear =
+    today.getMonth() + 1 > month || (today.getMonth() + 1 === month && today.getDate() >= day);
+  if (!hasHadBirthdayThisYear) age -= 1;
+  return age;
 }
 
 export function formatMonth(yyyyMM: string): string {

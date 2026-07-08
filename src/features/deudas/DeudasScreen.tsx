@@ -111,7 +111,7 @@ export function DeudasScreen({
                   <dl className="mt-1 flex flex-col gap-1 text-sm">
                     <div className="flex justify-between">
                       <dt className="text-[var(--text-muted)]">Hasta</dt>
-                      <dd className="font-medium text-[var(--text-secondary)]">{debt.dueDate}</dd>
+                      <dd className="font-medium text-[var(--text-secondary)]">{formatMonth(debt.dueDate)}</dd>
                     </div>
                     {estimated !== undefined && (
                       <div className="flex justify-between">

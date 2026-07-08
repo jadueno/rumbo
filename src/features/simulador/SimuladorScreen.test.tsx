@@ -10,7 +10,6 @@ function baseProfile(overrides: Partial<FinancialProfile> = {}): FinancialProfil
     incomes: [{ id: "i1", account: "ING", label: "Nómina", monthlyAmount: 2000 }],
     expenses: [{ id: "e1", group: "Fijos", account: "ING", label: "Alquiler", monthlyAmount: 800 }],
     transfers: [],
-    accountFlows: [],
     debts: [],
     emergencyFund: { targetMonths: 3 },
     ...overrides,

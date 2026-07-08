@@ -17,7 +17,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: cp src/data/finances.example.ts src/data/finances.ts
       - run: npm run lint
       - run: npm test
       - run: npm run build
@@ -83,7 +82,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: cp src/data/finances.example.ts src/data/finances.ts
       - run: npm ci
         working-directory: backend
       - run: npx playwright install --with-deps chromium

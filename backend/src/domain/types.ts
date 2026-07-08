@@ -5,6 +5,14 @@ export interface Account {
 
 export type NewAccount = Omit<Account, "id">;
 
+/** Singleton: siempre hay exactamente una fila (sin id expuesto a la API). */
+export interface Profile {
+  name: string;
+  /** Formato "YYYY-MM-DD". */
+  birthDate: string;
+  emergencyFundTargetMonths: number;
+}
+
 export interface Income {
   id: string;
   account: string;

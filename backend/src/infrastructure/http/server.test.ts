@@ -29,6 +29,33 @@ describe("GET /health", () => {
   });
 });
 
+// `profile` no se trunca en resetDatabase (ver testPool.ts): es una tabla singleton
+// sembrada una única vez por la migración de seed, no una colección de fixtures de test.
+describe("/profile", () => {
+  it("lee y actualiza el perfil", async () => {
+    const update = await app.inject({
+      method: "PUT",
+      url: "/profile",
+      payload: { name: "Ana", birthDate: "1990-03-20", emergencyFundTargetMonths: 6 },
+    });
+    expect(update.statusCode).toBe(200);
+    expect(update.json()).toEqual({ name: "Ana", birthDate: "1990-03-20", emergencyFundTargetMonths: 6 });
+
+    const get = await app.inject({ method: "GET", url: "/profile" });
+    expect(get.json()).toEqual({ name: "Ana", birthDate: "1990-03-20", emergencyFundTargetMonths: 6 });
+  });
+
+  it("responde 400 con una fecha de nacimiento futura", async () => {
+    const res = await app.inject({
+      method: "PUT",
+      url: "/profile",
+      payload: { name: "Ana", birthDate: "2099-01-01", emergencyFundTargetMonths: 6 },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toContain("no puede ser futura");
+  });
+});
+
 describe("/accounts", () => {
   it("crea, lista y borra una cuenta", async () => {
     const create = await app.inject({ method: "POST", url: "/accounts", payload: { name: "ING" } });
@@ -50,17 +77,60 @@ describe("/accounts", () => {
     expect(res.json().error).toContain("no puede estar vacío");
   });
 
-  it("no permite borrar una cuenta con gastos asociados", async () => {
+  it("al borrar una cuenta, borra en cascada sus ingresos, gastos, transferencias y seguimientos de ahorro", async () => {
     const account = (await app.inject({ method: "POST", url: "/accounts", payload: { name: "ING" } })).json();
-    await app.inject({
-      method: "POST",
-      url: "/expenses",
-      payload: { category: "Fijos", account: "ING", property: null, label: "Alquiler", monthlyAmount: 500 },
-    });
+    await app.inject({ method: "POST", url: "/accounts", payload: { name: "Ibercaja" } });
+
+    const income = (
+      await app.inject({
+        method: "POST",
+        url: "/incomes",
+        payload: { account: "ING", label: "Nómina", monthlyAmount: 2000, property: null },
+      })
+    ).json();
+    const expense = (
+      await app.inject({
+        method: "POST",
+        url: "/expenses",
+        payload: { category: "Fijos", account: "ING", property: null, label: "Alquiler", monthlyAmount: 500 },
+      })
+    ).json();
+    const transfer = (
+      await app.inject({
+        method: "POST",
+        url: "/transfers",
+        payload: { fromAccount: "ING", toAccount: "Ibercaja", monthlyAmount: 100 },
+      })
+    ).json();
+    const tracker = (
+      await app.inject({
+        method: "POST",
+        url: "/savings-trackers",
+        payload: {
+          kind: "emergency_fund",
+          name: "Fondo",
+          account: "ING",
+          initialBalance: 1000,
+          initialBalanceAsOf: "2026-01",
+        },
+      })
+    ).json();
 
     const remove = await app.inject({ method: "DELETE", url: `/accounts/${account.id}` });
-    expect(remove.statusCode).toBe(400);
-    expect(remove.json().error).toContain("1 movimiento(s)");
+    expect(remove.statusCode).toBe(204);
+
+    expect((await app.inject({ method: "GET", url: "/incomes" })).json()).not.toContainEqual(
+      expect.objectContaining({ id: income.id }),
+    );
+    expect((await app.inject({ method: "GET", url: "/expenses" })).json()).not.toContainEqual(
+      expect.objectContaining({ id: expense.id }),
+    );
+    expect((await app.inject({ method: "GET", url: "/transfers" })).json()).not.toContainEqual(
+      expect.objectContaining({ id: transfer.id }),
+    );
+    expect((await app.inject({ method: "GET", url: "/savings-trackers" })).json()).not.toContainEqual(
+      expect.objectContaining({ id: tracker.id }),
+    );
   });
 
   it("responde 404 al borrar una cuenta inexistente", async () => {

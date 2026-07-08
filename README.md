@@ -30,26 +30,28 @@ cp backend/.env.example backend/.env
 # coincidir en los dos archivos, tanto en POSTGRES_PASSWORD como
 # dentro de DATABASE_URL).
 
-# 2. Tus datos reales (no vienen en el repo, están en .gitignore)
-cp src/data/finances.example.ts src/data/finances.ts
-cp backend/src/infrastructure/db/seed.example.ts backend/src/infrastructure/db/seed.ts
-# Edita ambos con tu edad/cuentas (finances.ts) y tus ingresos,
-# gastos, deudas y transferencias reales (seed.ts). Revisa
-# src/domain/types.ts para ver la forma exacta de cada campo.
-
-# 3. Base de datos
+# 2. Base de datos
 docker compose up -d
 
-# 4. Backend
+# 3. Backend
 cd backend
 npm install
-npm run migrate:up   # crea las tablas
-npm run seed         # carga los datos de seed.ts
+npm run migrate:up   # crea las tablas y las deja con un perfil y datos de ejemplo
 cd ..
 
-# 5. Frontend
+# 4. Frontend
 npm install
 ```
+
+`npm run migrate:up` ya te deja la app usable con datos de ejemplo (perfil, cuentas, ingresos,
+gastos, una deuda...) — no hace falta copiar ni editar ningún archivo a mano para arrancar.
+Cuando quieras meter tus datos reales, hazlo desde la propia app (Perfil, y los botones
+"+ Añadir..."/"Eliminar" de cada pantalla) borrando lo de ejemplo que no necesites.
+
+Si prefieres cargar tus datos reales de golpe por script en vez de desde la UI, existe
+también la vía avanzada de `backend/src/infrastructure/db/seed.ts` (plantilla en
+`seed.example.ts`, ignorado por git) + `npm run seed` — pero es opcional, no un paso
+obligatorio de la instalación.
 
 ## Arrancar en el día a día
 
@@ -92,7 +94,7 @@ Notas:
 ## Datos
 
 - **Ingresos, gastos, deudas, transferencias y cuentas**: viven en Postgres, se editan desde la propia app (botones "+ Añadir..." y "Eliminar" en cada pantalla, con modal de confirmación). El backend valida (importes no negativos, categorías válidas, no se puede borrar una cuenta con movimientos asociados) antes de guardar.
-- **Edad y estructura de cuentas de referencia**: config estática en `src/data/finances.ts` (ignorado por git, con `finances.example.ts` como plantilla) — no cambia con el día a día.
+- **Perfil (nombre, fecha de nacimiento, objetivo del fondo de emergencia)**: pantalla "Perfil", vive en Postgres como el resto — la edad se calcula sola a partir de la fecha de nacimiento, no se guarda como número suelto.
 - El **saldo pendiente de cada deuda** no se edita a mano: cada deuda guarda su saldo conocido y el mes al que corresponde (`balanceAsOf`), y la app resta una cuota por cada mes transcurrido desde entonces.
 - El **fondo de emergencia y las inversiones** (pantalla "Ahorro") funcionan igual que las deudas pero al revés: se vinculan a una cuenta y guardan un saldo de partida + el mes al que corresponde, y la app suma sola cada mes el balance neto de esa cuenta desde entonces. El fondo de emergencia es como mucho uno; las inversiones pueden ser varias, con su propio alta/baja.
 - El **score de salud financiera** (pantalla "Resumen") combina tasa de ahorro, carga de deuda, progreso del fondo de emergencia y dinero ocioso en un único número 0-100, con desglose explicado factor a factor.
@@ -102,12 +104,12 @@ Notas:
 ## Estructura
 
 - `src/domain/` — tipos y cálculos financieros puros (sin UI, sin red).
-- `src/data/` — `finances.ts` (config estática real, ignorado por git), `api.ts` + `useFinancialData.ts` (cliente HTTP y estado de la app).
-- `src/features/` — una pantalla por carpeta (resumen, gastos [ingresos+gastos+transferencias+cuentas], deudas, ahorro, simulador, historial, recomendaciones), con sus formularios de alta.
+- `src/data/` — `api.ts` + `useFinancialData.ts` (cliente HTTP y estado de la app).
+- `src/features/` — una pantalla por carpeta (resumen, gastos [ingresos+gastos+transferencias+cuentas], deudas, ahorro, simulador, historial, recomendaciones, perfil), con sus formularios de alta.
 - `src/components/` — piezas de UI reutilizables (incluye `ConfirmProvider`, el modal de confirmación de borrados).
 - `backend/` — API en Node + TypeScript (Fastify) sobre Postgres, arquitectura hexagonal (`domain/` → `application/` → `infrastructure/`). Ver `backend/README.md`.
 - `docker-compose.yml` — Postgres local, puerto 5433.
 
 ## Privacidad
 
-Los datos financieros reales no salen de tu máquina: no se suben a GitHub (`.gitignore` cubre `finances.ts`, `backend/src/infrastructure/db/seed.ts` y los `.env`), la base de datos es un contenedor Docker local, y no hay ningún despliegue remoto configurado. El acceso desde el móvil vía Tailscale tampoco expone nada a internet: es una red privada solo entre tus propios dispositivos.
+Los datos financieros reales no salen de tu máquina: no se suben a GitHub (`.gitignore` cubre `backend/src/infrastructure/db/seed.ts` y los `.env`), la base de datos es un contenedor Docker local, y no hay ningún despliegue remoto configurado. El acceso desde el móvil vía Tailscale tampoco expone nada a internet: es una red privada solo entre tus propios dispositivos.

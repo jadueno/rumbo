@@ -4,15 +4,12 @@ import type { AccountRepository } from "../infrastructure/db/repositories/accoun
 import { callAsync } from "../test/callAsync.js";
 import { createAccountUseCases } from "./accounts.js";
 
-function createFakeAccountRepository(usagesByName: Record<string, number> = {}): AccountRepository {
+function createFakeAccountRepository(): AccountRepository {
   const rows: Account[] = [];
   let nextId = 1;
   return {
     async list() {
       return [...rows];
-    },
-    async findById(id: string) {
-      return rows.find((r) => r.id === id) ?? null;
     },
     async create(entity: NewAccount) {
       const created = { id: String(nextId++), name: entity.name };
@@ -24,9 +21,6 @@ function createFakeAccountRepository(usagesByName: Record<string, number> = {}):
       if (index === -1) return false;
       rows.splice(index, 1);
       return true;
-    },
-    async countUsages(name: string) {
-      return usagesByName[name] ?? 0;
     },
   };
 }
@@ -43,19 +37,12 @@ describe("createAccountUseCases", () => {
     await expect(callAsync(() => useCases.create({ name: "   " }))).rejects.toThrow("no puede estar vacío");
   });
 
-  it("borra una cuenta sin movimientos asociados", async () => {
+  it("borra una cuenta", async () => {
     const repo = createFakeAccountRepository();
     const useCases = createAccountUseCases(repo);
     const account = await useCases.create({ name: "ING" });
     expect(await useCases.remove(account.id)).toBe(true);
     expect(await repo.list()).toHaveLength(0);
-  });
-
-  it("no borra una cuenta con movimientos asociados", async () => {
-    const repo = createFakeAccountRepository({ ING: 3 });
-    const useCases = createAccountUseCases(repo);
-    const account = await useCases.create({ name: "ING" });
-    await expect(useCases.remove(account.id)).rejects.toThrow("3 movimiento(s)");
   });
 
   it("devuelve false al borrar una cuenta inexistente", async () => {

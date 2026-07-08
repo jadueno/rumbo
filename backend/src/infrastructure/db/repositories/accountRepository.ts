@@ -12,11 +12,10 @@ function toAccount(row: AccountRow): Account {
 
 export interface AccountRepository {
   list(): Promise<Account[]>;
-  findById(id: string): Promise<Account | null>;
   create(entity: NewAccount): Promise<Account>;
+  /** Borra la cuenta y, en cascada, todo lo que la referencie por nombre (ingresos, gastos,
+   * transferencias, seguimientos de ahorro/inversión). */
   remove(id: string): Promise<boolean>;
-  /** Cuántos ingresos/gastos/transferencias referencian esta cuenta por nombre. */
-  countUsages(name: string): Promise<number>;
 }
 
 export function createAccountRepository(pool: Pool): AccountRepository {
@@ -24,11 +23,6 @@ export function createAccountRepository(pool: Pool): AccountRepository {
     async list() {
       const { rows } = await pool.query<AccountRow>("select id, name from accounts order by created_at");
       return rows.map(toAccount);
-    },
-
-    async findById(id) {
-      const { rows } = await pool.query<AccountRow>("select id, name from accounts where id = $1", [id]);
-      return rows[0] ? toAccount(rows[0]) : null;
     },
 
     async create(entity) {
@@ -40,20 +34,28 @@ export function createAccountRepository(pool: Pool): AccountRepository {
     },
 
     async remove(id) {
-      const { rowCount } = await pool.query("delete from accounts where id = $1", [id]);
-      return (rowCount ?? 0) > 0;
-    },
-
-    async countUsages(name) {
-      const { rows } = await pool.query<{ count: string }>(
-        `select
-           (select count(*) from incomes where account = $1)
-           + (select count(*) from expenses where account = $1)
-           + (select count(*) from transfers where from_account = $1 or to_account = $1)
-           as count`,
-        [name],
-      );
-      return Number(rows[0].count);
+      const client = await pool.connect();
+      try {
+        await client.query("begin");
+        const { rows } = await client.query<AccountRow>("select id, name from accounts where id = $1", [id]);
+        const account = rows[0];
+        if (!account) {
+          await client.query("rollback");
+          return false;
+        }
+        await client.query("delete from incomes where account = $1", [account.name]);
+        await client.query("delete from expenses where account = $1", [account.name]);
+        await client.query("delete from transfers where from_account = $1 or to_account = $1", [account.name]);
+        await client.query("delete from savings_trackers where account = $1", [account.name]);
+        const { rowCount } = await client.query("delete from accounts where id = $1", [id]);
+        await client.query("commit");
+        return (rowCount ?? 0) > 0;
+      } catch (error) {
+        await client.query("rollback");
+        throw error;
+      } finally {
+        client.release();
+      }
     },
   };
 }

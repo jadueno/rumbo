@@ -1,6 +1,6 @@
 import type { AccountRepository } from "../infrastructure/db/repositories/accountRepository.js";
 import type { NewAccount } from "../domain/types.js";
-import { assertNonEmpty, ValidationError } from "./errors.js";
+import { assertNonEmpty } from "./errors.js";
 
 export function createAccountUseCases(repo: AccountRepository) {
   return {
@@ -11,17 +11,8 @@ export function createAccountUseCases(repo: AccountRepository) {
       return repo.create({ name: entity.name.trim() });
     },
 
-    remove: async (id: string) => {
-      const account = await repo.findById(id);
-      if (!account) return false;
-
-      const usages = await repo.countUsages(account.name);
-      if (usages > 0) {
-        throw new ValidationError(
-          `No se puede borrar "${account.name}": tiene ${usages} movimiento(s) asociados. Bórralos primero.`,
-        );
-      }
-      return repo.remove(id);
-    },
+    /** Borra la cuenta en cascada junto con sus ingresos, gastos, transferencias y
+     * seguimientos de ahorro/inversión asociados (ver AccountRepository.remove). */
+    remove: (id: string) => repo.remove(id),
   };
 }

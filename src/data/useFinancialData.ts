@@ -10,12 +10,13 @@ import type {
   NewSavingsTracker,
   NewSnapshot,
   NewTransfer,
+  Profile,
   Property,
   SavingsTracker,
   Snapshot,
 } from "../domain/types";
-import { staticProfile } from "./finances";
-import { createCrudClient } from "./api";
+import { calculateAge } from "../domain/calculations";
+import { createCrudClient, createSingletonClient } from "./api";
 import {
   toApiDebt,
   toApiExpense,
@@ -30,6 +31,7 @@ import {
 } from "./apiMappers";
 
 const accountClient = createCrudClient<Account, NewAccount>("/accounts");
+const profileClient = createSingletonClient<Profile>("/profile");
 const incomeClient = createCrudClient<ApiIncome, ReturnType<typeof toApiIncome>>("/incomes");
 const expenseClient = createCrudClient<ApiExpense, ReturnType<typeof toApiExpense>>("/expenses");
 const debtClient = createCrudClient<ApiDebt, ReturnType<typeof toApiDebt>>("/debts");
@@ -40,6 +42,7 @@ const snapshotClient = createCrudClient<Snapshot, NewSnapshot>("/snapshots");
 
 export function useFinancialData() {
   const [profile, setProfile] = useState<FinancialProfile | null>(null);
+  const [rawProfile, setRawProfile] = useState<Profile | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [trackers, setTrackers] = useState<SavingsTracker[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -51,27 +54,39 @@ export function useFinancialData() {
     setLoading(true);
     setError(null);
     try {
-      const [accountList, apiIncomes, apiExpenses, apiDebts, transfers, trackerList, propertyList, snapshotList] =
-        await Promise.all([
-          accountClient.list(),
-          incomeClient.list(),
-          expenseClient.list(),
-          debtClient.list(),
-          transferClient.list(),
-          trackerClient.list(),
-          propertyClient.list(),
-          snapshotClient.list(),
-        ]);
+      const [
+        apiProfile,
+        accountList,
+        apiIncomes,
+        apiExpenses,
+        apiDebts,
+        transfers,
+        trackerList,
+        propertyList,
+        snapshotList,
+      ] = await Promise.all([
+        profileClient.get(),
+        accountClient.list(),
+        incomeClient.list(),
+        expenseClient.list(),
+        debtClient.list(),
+        transferClient.list(),
+        trackerClient.list(),
+        propertyClient.list(),
+        snapshotClient.list(),
+      ]);
       setAccounts(accountList);
       setTrackers(trackerList);
       setProperties(propertyList);
       setSnapshots(snapshotList);
+      setRawProfile(apiProfile);
       setProfile({
-        ...staticProfile,
+        age: calculateAge(apiProfile.birthDate),
         incomes: apiIncomes.map(toIncomeSource),
         expenses: apiExpenses.map(toExpenseItem),
         debts: apiDebts.map(toDebt),
         transfers,
+        emergencyFund: { targetMonths: apiProfile.emergencyFundTargetMonths },
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error cargando los datos");
@@ -86,12 +101,17 @@ export function useFinancialData() {
 
   return {
     profile,
+    rawProfile,
     accounts,
     trackers,
     properties,
     snapshots,
     loading,
     error,
+    updateProfile: async (entity: Profile) => {
+      await profileClient.update(entity);
+      await reload();
+    },
     addAccount: async (entity: NewAccount) => {
       await accountClient.create(entity);
       await reload();

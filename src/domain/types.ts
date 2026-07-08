@@ -52,12 +52,6 @@ export interface SavingsTracker {
 
 export type NewSavingsTracker = Omit<SavingsTracker, "id">;
 
-export interface AccountFlow {
-  account: string;
-  entra: number;
-  sale: number;
-}
-
 export interface Debt {
   id: string;
   name: string;
@@ -97,12 +91,19 @@ export interface Snapshot {
 
 export type NewSnapshot = Omit<Snapshot, "id">;
 
+/** Singleton: siempre hay exactamente un perfil (sin id expuesto a la API). */
+export interface Profile {
+  name: string;
+  /** Formato "YYYY-MM-DD". */
+  birthDate: string;
+  emergencyFundTargetMonths: number;
+}
+
 export interface FinancialProfile {
   age: number;
   incomes: IncomeSource[];
   expenses: ExpenseItem[];
   transfers: Transfer[];
-  accountFlows: AccountFlow[];
   debts: Debt[];
   emergencyFund: EmergencyFund;
 }
