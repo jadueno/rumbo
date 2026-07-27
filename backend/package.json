@@ -14,6 +14,7 @@
     "seed": "tsx src/infrastructure/db/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "hash-password": "tsx src/scripts/hashPassword.ts",
     "test:migrate": "node-pg-migrate up --tsx --migrations-dir src/infrastructure/db/migrations --migration-file-language ts -d TEST_DATABASE_URL"
   },
   "keywords": [],

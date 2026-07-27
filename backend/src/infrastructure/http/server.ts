@@ -3,7 +3,7 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import type { Pool } from "pg";
-import { registerAuth } from "./auth.js";
+import { registerAuth, type LoginConfig } from "./auth.js";
 import { registerCrudRoutes } from "./crudRoutes.js";
 import { registerAccountRoutes } from "./accountRoutes.js";
 import { registerProfileRoutes } from "./profileRoutes.js";
@@ -28,7 +28,7 @@ import { createSavingsTrackerUseCases } from "../../application/savingsTrackers.
 import { createPropertyUseCases } from "../../application/properties.js";
 import { createSnapshotUseCases } from "../../application/snapshots.js";
 
-export async function buildServer(pool: Pool, options: { logger?: boolean; apiToken?: string } = {}) {
+export async function buildServer(pool: Pool, options: { logger?: boolean; loginConfig?: LoginConfig } = {}) {
   const app = Fastify({ logger: options.logger ?? true });
   // CSP desactivada a propósito: esta API solo devuelve JSON, nunca HTML/JS, así que
   // una Content-Security-Policy (pensada para páginas renderizadas) no aporta nada aquí.
@@ -40,7 +40,7 @@ export async function buildServer(pool: Pool, options: { logger?: boolean; apiTo
 
   app.get("/health", async () => ({ status: "ok" }));
 
-  registerAuth(app, options.apiToken);
+  registerAuth(app, options.loginConfig);
 
   const accountRepository = createAccountRepository(pool);
   const profileRepository = createProfileRepository(pool);

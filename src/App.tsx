@@ -1,14 +1,17 @@
-import { useState, type ComponentType, type SVGProps } from "react";
+import { useEffect, useState, type ComponentType, type SVGProps } from "react";
 import { useFinancialData } from "./data/useFinancialData";
+import { getAuthConfig, login, logout } from "./data/api";
+import { getStoredToken, onUnauthorized } from "./data/auth";
 import { ResumenScreen } from "./features/resumen/ResumenScreen";
 import { GastosScreen } from "./features/gastos/GastosScreen";
 import { DeudasScreen } from "./features/deudas/DeudasScreen";
 import { AhorroScreen } from "./features/ahorro/AhorroScreen";
 import { SimuladorScreen } from "./features/simulador/SimuladorScreen";
 import { HistorialScreen } from "./features/historial/HistorialScreen";
-import { HomeIcon, ExpenseIcon, DebtIcon, SavingsIcon, SimulatorIcon, TrendIcon } from "./components/icons";
+import { HomeIcon, ExpenseIcon, DebtIcon, SavingsIcon, SimulatorIcon, TrendIcon, LogoutIcon } from "./components/icons";
 import { LoadingState } from "./components/LoadingState";
 import { BrandMark } from "./components/BrandMark";
+import { LoginScreen } from "./features/auth/LoginScreen";
 
 // "Perfil" no es una sección de navegación: hay demasiadas ya, y no es algo que se
 // consulte a diario — vive como un botón/modal dentro de "Resumen" (ver ResumenScreen).
@@ -32,7 +35,44 @@ const sections: {
 
 export default function App() {
   const [section, setSection] = useState<Section>("resumen");
-  const data = useFinancialData();
+  // null = todavía no se sabe si el backend exige login (ver /auth-config). Si no lo
+  // exige (uso personal local/Tailscale, sin LOGIN_USERNAME/LOGIN_PASSWORD_HASH/
+  // SESSION_SECRET en el backend), la app entera sigue sin fricción, igual que antes.
+  const [loginRequired, setLoginRequired] = useState<boolean | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
+  // No se dispara ninguna petición de datos hasta saber que no hace falta login, o que
+  // ya hay sesión — evita una ráfaga de 401 de sobra en cada carga sin sesión.
+  const dataEnabled = loginRequired !== null && (!loginRequired || authenticated);
+  const data = useFinancialData(dataEnabled);
+
+  useEffect(() => {
+    onUnauthorized(() => setAuthenticated(false));
+    getAuthConfig()
+      .then(({ loginRequired }) => {
+        setLoginRequired(loginRequired);
+        setAuthenticated(loginRequired ? !!getStoredToken() : true);
+      })
+      // Si /auth-config falla (backend caído, no un problema de login), no bloquear en
+      // un login infinito — el resto de la app ya muestra su propio aviso de conexión.
+      .catch(() => {
+        setLoginRequired(false);
+        setAuthenticated(true);
+      });
+    return () => onUnauthorized(null);
+  }, []);
+
+  if (loginRequired === null) return <LoadingState />;
+
+  if (loginRequired && !authenticated) {
+    return (
+      <LoginScreen
+        onLogin={async (username, password) => {
+          await login(username, password);
+          setAuthenticated(true);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="app-shell flex min-h-screen flex-col sm:flex-row">
@@ -61,6 +101,19 @@ export default function App() {
             {s.label}
           </button>
         ))}
+        {loginRequired && (
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              setAuthenticated(false);
+            }}
+            className="mt-auto flex items-center gap-2.5 rounded-full px-4 py-2.5 text-left text-sm font-semibold whitespace-nowrap text-[var(--text-secondary)] transition-all duration-150 hover:bg-[var(--gridline)] hover:text-[var(--status-critical)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--series-income)]"
+          >
+            <LogoutIcon className="size-5 shrink-0" />
+            Cerrar sesión
+          </button>
+        )}
       </nav>
 
       <main className="relative flex-1 p-4 pb-36 sm:p-8 sm:pb-12">
@@ -165,6 +218,19 @@ export default function App() {
               <span className="leading-tight">{s.shortLabel}</span>
             </button>
           ))}
+          {loginRequired && (
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                setAuthenticated(false);
+              }}
+              aria-label="Cerrar sesión"
+              className="flex flex-col items-center justify-center gap-0.5 rounded-full px-0.5 py-1.5 text-[var(--text-muted)] transition-all duration-150 hover:text-[var(--status-critical)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--series-income)]"
+            >
+              <LogoutIcon className="size-5 shrink-0" />
+            </button>
+          )}
         </div>
       </nav>
     </div>

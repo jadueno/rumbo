@@ -59,7 +59,7 @@ async function backupAfterSnapshot(): Promise<BackupOutcome> {
   }
 }
 
-export function useFinancialData() {
+export function useFinancialData(enabled = true) {
   const [profile, setProfile] = useState<FinancialProfile | null>(null);
   const [rawProfile, setRawProfile] = useState<Profile | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -115,8 +115,8 @@ export function useFinancialData() {
   }, []);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    if (enabled) reload();
+  }, [enabled, reload]);
 
   return {
     profile,

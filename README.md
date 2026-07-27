@@ -113,4 +113,6 @@ Notas:
 
 ## Privacidad
 
-Los datos financieros reales no salen de tu máquina: no se suben a GitHub (`.gitignore` cubre `backend/src/infrastructure/db/seed.ts` y los `.env`), la base de datos es un contenedor Docker local, y no hay ningún despliegue remoto configurado. El acceso desde el móvil vía Tailscale tampoco expone nada a internet: es una red privada solo entre tus propios dispositivos.
+Los datos financieros reales no salen de tu propia infraestructura: no se suben a GitHub (`.gitignore` cubre `backend/src/infrastructure/db/seed.ts` y los `.env`), y en local la base de datos es un contenedor Docker propio. El acceso desde el móvil vía Tailscale tampoco expone nada a internet: es una red privada solo entre tus propios dispositivos.
+
+También se puede desplegar en un servidor propio (ver ARCHITECTURE.md, sección "Login de un solo usuario") — en ese caso, protégela con login (`LOGIN_USERNAME`/`LOGIN_PASSWORD_HASH`/`SESSION_SECRET` en `backend/.env`, ver `.env.example`) para que solo tú puedas entrar. La instancia pública nunca queda accesible sin credenciales.
