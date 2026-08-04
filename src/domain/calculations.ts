@@ -61,6 +61,22 @@ export function netMonthlyCashflow(profile: FinancialProfile): number {
   return totalMonthlyIncome(profile) - totalMonthlyExpenses(profile);
 }
 
+/**
+ * Suma de los déficits (balance negativo) de las cuentas, cuenta a cuenta: lo que
+ * realmente falta cada mes. No se compensa con el sobrante de otras cuentas — ese
+ * sobrante es ahorro en su propia cuenta, no dinero ya disponible para tapar el
+ * descubierto de otra (mover dinero entre cuentas es una decisión deliberada, ver
+ * la recomendación correspondiente en `buildRecommendations`).
+ */
+export function totalAccountShortfall(accountBalances: AccountBalance[]): number {
+  return sum(accountBalances.filter((a) => a.balance < 0).map((a) => -a.balance));
+}
+
+/** Suma de los superávits (balance positivo) de las cuentas: dinero que queda como ahorro en cada cuenta. */
+export function totalAccountSurplus(accountBalances: AccountBalance[]): number {
+  return sum(accountBalances.filter((a) => a.balance > 0).map((a) => a.balance));
+}
+
 function trackedAccountNames(trackers: SavingsTracker[]): Set<string> {
   return new Set(trackers.map((t) => t.account));
 }
@@ -327,6 +343,23 @@ export function buildRecommendations(
       severity: "alta",
       title: "Gastas más de lo que ingresas",
       detail: `Cada mes se van ${formatEUR(Math.abs(net))} más de lo que entra. Antes de pensar en ahorro o inversión, hay que cerrar ese agujero: revisa gastos variables o busca ingresos adicionales.`,
+    });
+  }
+
+  const shortfall = totalAccountShortfall(accountBalances);
+  if (shortfall > 0) {
+    const accountsInDeficit = accountBalances.filter((a) => a.balance < 0);
+    const names = accountsInDeficit.map((a) => a.account).join(", ");
+    const plural = accountsInDeficit.length > 1;
+    const surplus = totalAccountSurplus(accountBalances);
+    const detail =
+      surplus > 0
+        ? `${names} ${plural ? "cierran" : "cierra"} el mes en descubierto por ${formatEUR(shortfall)}. Tienes ${formatEUR(surplus)} de sobrante repartido en otras cuentas: una opción es mover manualmente parte de ese dinero cada mes para cubrirlo, aunque lo ideal es que cada cuenta se sostenga con lo suyo a medio plazo.`
+        : `${names} ${plural ? "cierran" : "cierra"} el mes en descubierto por ${formatEUR(shortfall)} y no hay sobrante en otras cuentas que lo cubra: hace falta reducir gastos o aumentar ingresos en esa cuenta.`;
+    recs.push({
+      severity: "alta",
+      title: plural ? "Cuentas en descubierto" : "Cuenta en descubierto",
+      detail,
     });
   }
 

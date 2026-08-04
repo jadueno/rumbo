@@ -24,6 +24,8 @@ import {
   savingsRate,
   scoreFromMetrics,
   simulateAdjustments,
+  totalAccountShortfall,
+  totalAccountSurplus,
   totalEstimatedRemainingDebt,
   totalMonthlyDebtPayments,
   totalMonthlyExpenses,
@@ -79,6 +81,36 @@ describe("netMonthlyCashflow", () => {
       expenses: [{ id: "1", group: "Fijos", account: "A", label: "Alquiler", monthlyAmount: 1500 }],
     });
     expect(netMonthlyCashflow(profile)).toBe(-500);
+  });
+});
+
+describe("totalAccountShortfall / totalAccountSurplus", () => {
+  it("no cuenta como falta el déficit de una cuenta si otra tiene sobrante suficiente para tapar el neto global", () => {
+    // BBVA se queda corto 1500€, otra cuenta tiene 725€ de sobra: el neto global es -775€,
+    // pero lo que realmente falta (cuenta a cuenta, sin compensar) es 1500€, no 775€.
+    const accountBalances = [
+      { account: "BBVA", income: 1000, expenses: 2500, transfersIn: 0, transfersOut: 0, balance: -1500 },
+      { account: "ING", income: 2000, expenses: 1275, transfersIn: 0, transfersOut: 0, balance: 725 },
+    ];
+    expect(totalAccountShortfall(accountBalances)).toBe(1500);
+    expect(totalAccountSurplus(accountBalances)).toBe(725);
+  });
+
+  it("es 0 si ninguna cuenta está en negativo", () => {
+    const accountBalances = [
+      { account: "BBVA", income: 1000, expenses: 500, transfersIn: 0, transfersOut: 0, balance: 500 },
+    ];
+    expect(totalAccountShortfall(accountBalances)).toBe(0);
+    expect(totalAccountSurplus(accountBalances)).toBe(500);
+  });
+
+  it("suma varios déficits si hay más de una cuenta en negativo", () => {
+    const accountBalances = [
+      { account: "BBVA", income: 0, expenses: 300, transfersIn: 0, transfersOut: 0, balance: -300 },
+      { account: "ING", income: 0, expenses: 200, transfersIn: 0, transfersOut: 0, balance: -200 },
+    ];
+    expect(totalAccountShortfall(accountBalances)).toBe(500);
+    expect(totalAccountSurplus(accountBalances)).toBe(0);
   });
 });
 
@@ -632,6 +664,41 @@ describe("buildRecommendations", () => {
     ];
     const recs = buildRecommendations(profile, 0, accountBalances, [], []);
     expect(recs.some((r) => r.title === "Todo el dinero en una sola cuenta")).toBe(true);
+  });
+
+  it("avisa de cuenta en descubierto cuando una cuenta está en negativo, aunque otra tenga sobrante que compense el neto global", () => {
+    const profile = makeProfile({
+      incomes: [
+        { id: "1", account: "BBVA", label: "Salario", monthlyAmount: 1000 },
+        { id: "2", account: "ING", label: "Freelance", monthlyAmount: 2000 },
+      ],
+      expenses: [
+        { id: "1", group: "Fijos", account: "BBVA", label: "Gastos", monthlyAmount: 2500 },
+        { id: "2", group: "Fijos", account: "ING", label: "Gastos", monthlyAmount: 1275 },
+      ],
+    });
+    const accountBalances = [
+      { account: "BBVA", income: 1000, expenses: 2500, transfersIn: 0, transfersOut: 0, balance: -1500 },
+      { account: "ING", income: 2000, expenses: 1275, transfersIn: 0, transfersOut: 0, balance: 725 },
+    ];
+    const recs = buildRecommendations(profile, 0, accountBalances, [], []);
+    const rec = recs.find((r) => r.title === "Cuenta en descubierto");
+    expect(rec?.severity).toBe("alta");
+    expect(rec?.detail).toContain("BBVA");
+    expect(rec?.detail).toContain(formatEUR(1500));
+    expect(rec?.detail).toContain(formatEUR(725));
+  });
+
+  it("no avisa de cuenta en descubierto si ninguna cuenta está en negativo", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 3000 }],
+      expenses: [{ id: "1", group: "Fijos", account: "Nomina", label: "Gastos", monthlyAmount: 1000 }],
+    });
+    const accountBalances = [
+      { account: "Nomina", income: 3000, expenses: 1000, transfersIn: 0, transfersOut: 0, balance: 2000 },
+    ];
+    const recs = buildRecommendations(profile, 0, accountBalances, [], []);
+    expect(recs.some((r) => r.title === "Cuenta en descubierto")).toBe(false);
   });
 
   it("avisa para invertir cuando el fondo de emergencia ya está completo y no hay ningún tracker de inversión", () => {

@@ -8,7 +8,13 @@ import type {
   NewTransfer,
   Property,
 } from "../../domain/types";
-import { balanceByAccount, formatEUR, totalMonthlyExpenses, totalMonthlyIncome } from "../../domain/calculations";
+import {
+  balanceByAccount,
+  formatEUR,
+  totalAccountShortfall,
+  totalMonthlyExpenses,
+  totalMonthlyIncome,
+} from "../../domain/calculations";
 import { Card } from "../../components/Card";
 import { Button } from "../../components/Button";
 import { IconBadge } from "../../components/IconBadge";
@@ -62,9 +68,12 @@ export function GastosScreen({
   const [importOpen, setImportOpen] = useState(false);
   const totalIncome = totalMonthlyIncome(profile);
   const totalExpenses = totalMonthlyExpenses(profile);
-  const balanceDiff = totalIncome - totalExpenses;
   const accountNames = accounts.map((a) => a.name);
   const accountBalances = balanceByAccount(profile, accountNames);
+  // El sobrante de una cuenta es ahorro suyo, no dinero disponible para tapar el
+  // descubierto de otra: por eso lo que "falta" se calcula cuenta a cuenta, sin
+  // compensar un déficit con el superávit de otra cuenta (ver recomendaciones).
+  const shortfall = totalAccountShortfall(accountBalances);
 
   async function handleRemoveIncome(label: string, id: string) {
     if (await confirm(`¿Eliminar el ingreso "${label}"? Esta acción no se puede deshacer.`)) {
@@ -104,13 +113,10 @@ export function GastosScreen({
           Ingresas <strong className="font-bold text-[var(--text-primary)]">{formatEUR(totalIncome)}</strong>{" "}
           y te queda por pagar{" "}
           <strong className="font-bold text-[var(--text-primary)]">{formatEUR(totalExpenses)}</strong> al mes.
-          {balanceDiff !== 0 && (
-            <strong
-              className="font-bold"
-              style={{ color: balanceDiff < 0 ? "var(--status-critical)" : "var(--status-good)" }}
-            >
+          {shortfall > 0 && (
+            <strong className="font-bold" style={{ color: "var(--status-critical)" }}>
               {" "}
-              ({balanceDiff < 0 ? "Te faltan" : "Te sobran"} {formatEUR(Math.abs(balanceDiff))})
+              (Te faltan {formatEUR(shortfall)})
             </strong>
           )}
         </p>
