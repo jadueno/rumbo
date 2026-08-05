@@ -11,7 +11,6 @@ const TABLES = [
   "incomes",
   "savings_trackers",
   "properties",
-  "snapshots",
   "accounts",
 ];
 

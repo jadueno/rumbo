@@ -32,7 +32,6 @@ vi.mock("./data/useFinancialData", () => ({
     accounts: [],
     trackers: [],
     properties: [],
-    snapshots: [],
     loading: false,
     error: null,
     updateProfile: vi.fn(),
@@ -53,9 +52,6 @@ vi.mock("./data/useFinancialData", () => ({
     addProperty: vi.fn(),
     updateProperty: vi.fn(),
     removeProperty: vi.fn(),
-    addSnapshot: vi.fn(),
-    updateSnapshot: vi.fn(),
-    removeSnapshot: vi.fn(),
   }),
 }));
 

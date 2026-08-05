@@ -8,15 +8,13 @@ import type {
   NewIncomeSource,
   NewProperty,
   NewSavingsTracker,
-  NewSnapshot,
   NewTransfer,
   Profile,
   Property,
   SavingsTracker,
-  Snapshot,
 } from "../domain/types";
 import { calculateAge } from "../domain/calculations";
-import { createCrudClient, createSingletonClient, triggerBackup } from "./api";
+import { createCrudClient, createSingletonClient } from "./api";
 import {
   toApiDebt,
   toApiExpense,
@@ -38,26 +36,6 @@ const debtClient = createCrudClient<ApiDebt, ReturnType<typeof toApiDebt>>("/deb
 const transferClient = createCrudClient<ApiTransfer, NewTransfer>("/transfers");
 const trackerClient = createCrudClient<SavingsTracker, NewSavingsTracker>("/savings-trackers");
 const propertyClient = createCrudClient<Property, NewProperty>("/properties");
-const snapshotClient = createCrudClient<Snapshot, NewSnapshot>("/snapshots");
-
-export interface BackupOutcome {
-  backupOk: boolean;
-  backupError?: string;
-}
-
-/**
- * Guardar un snapshot nunca debe fallar porque el backup falle (Docker parado, etc.) —
- * el snapshot ya se ha guardado de verdad. Se informa del resultado del backup por
- * separado para que la pantalla pueda avisar sin bloquear ni deshacer el snapshot.
- */
-async function backupAfterSnapshot(): Promise<BackupOutcome> {
-  try {
-    await triggerBackup();
-    return { backupOk: true };
-  } catch (err) {
-    return { backupOk: false, backupError: err instanceof Error ? err.message : "Error desconocido" };
-  }
-}
 
 export function useFinancialData(enabled = true) {
   const [profile, setProfile] = useState<FinancialProfile | null>(null);
@@ -65,7 +43,6 @@ export function useFinancialData(enabled = true) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [trackers, setTrackers] = useState<SavingsTracker[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
-  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,31 +50,20 @@ export function useFinancialData(enabled = true) {
     setLoading(true);
     setError(null);
     try {
-      const [
-        apiProfile,
-        accountList,
-        apiIncomes,
-        apiExpenses,
-        apiDebts,
-        transfers,
-        trackerList,
-        propertyList,
-        snapshotList,
-      ] = await Promise.all([
-        profileClient.get(),
-        accountClient.list(),
-        incomeClient.list(),
-        expenseClient.list(),
-        debtClient.list(),
-        transferClient.list(),
-        trackerClient.list(),
-        propertyClient.list(),
-        snapshotClient.list(),
-      ]);
+      const [apiProfile, accountList, apiIncomes, apiExpenses, apiDebts, transfers, trackerList, propertyList] =
+        await Promise.all([
+          profileClient.get(),
+          accountClient.list(),
+          incomeClient.list(),
+          expenseClient.list(),
+          debtClient.list(),
+          transferClient.list(),
+          trackerClient.list(),
+          propertyClient.list(),
+        ]);
       setAccounts(accountList);
       setTrackers(trackerList);
       setProperties(propertyList);
-      setSnapshots(snapshotList);
       setRawProfile(apiProfile);
       setProfile({
         age: calculateAge(apiProfile.birthDate),
@@ -124,7 +90,6 @@ export function useFinancialData(enabled = true) {
     accounts,
     trackers,
     properties,
-    snapshots,
     loading,
     error,
     updateProfile: async (entity: Profile) => {
@@ -197,20 +162,6 @@ export function useFinancialData(enabled = true) {
     },
     removeProperty: async (id: string) => {
       await propertyClient.remove(id);
-      await reload();
-    },
-    addSnapshot: async (entity: NewSnapshot): Promise<BackupOutcome> => {
-      await snapshotClient.create(entity);
-      await reload();
-      return backupAfterSnapshot();
-    },
-    updateSnapshot: async (id: string, entity: NewSnapshot): Promise<BackupOutcome> => {
-      await snapshotClient.update(id, entity);
-      await reload();
-      return backupAfterSnapshot();
-    },
-    removeSnapshot: async (id: string) => {
-      await snapshotClient.remove(id);
       await reload();
     },
   };

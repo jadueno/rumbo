@@ -60,20 +60,6 @@ export function SavingsIcon(props: IconProps) {
   );
 }
 
-export function SimulatorIcon(props: IconProps) {
-  return (
-    <svg {...base} {...props}>
-      <path d="M5 5v6" />
-      <circle cx="5" cy="13" r="2" />
-      <path d="M12 5v2" />
-      <circle cx="12" cy="9" r="2" />
-      <path d="M12 13v6" />
-      <path d="M19 5v10" />
-      <circle cx="19" cy="17" r="2" />
-    </svg>
-  );
-}
-
 export function DownloadIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -90,15 +76,6 @@ export function UploadIcon(props: IconProps) {
       <path d="M12 15V3" />
       <path d="m7 7.5 5-5 5 5" />
       <path d="M4.5 19.5h15" />
-    </svg>
-  );
-}
-
-export function TrendIcon(props: IconProps) {
-  return (
-    <svg {...base} {...props}>
-      <path d="m4 15 5.5-5.5 4 4L20 6.5" />
-      <path d="M14.5 6.5H20V12" />
     </svg>
   );
 }

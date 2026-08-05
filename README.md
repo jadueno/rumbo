@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/jadueno/rumbo/actions/workflows/ci.yml/badge.svg)](https://github.com/jadueno/rumbo/actions/workflows/ci.yml)
 
-App personal (un solo usuario) para ver de un vistazo cómo va tu economía: ingresos, gastos, deudas, ahorro/inversión, historial/evolución en el tiempo y recomendaciones. Ingresos, gastos, deudas, transferencias y cuentas se pueden añadir/editar/borrar libremente (con confirmación antes de borrar) — se guardan en una base de datos Postgres local, así que puedes "jugar" con los números sin miedo a romper nada real.
+App personal (un solo usuario) para ver de un vistazo cómo va tu economía: ingresos, gastos, deudas, ahorro/inversión y recomendaciones. Ingresos, gastos, deudas, transferencias y cuentas se pueden añadir/editar/borrar libremente (con confirmación antes de borrar) — se guardan en una base de datos Postgres local, así que puedes "jugar" con los números sin miedo a romper nada real.
 
 📐 Si te interesa la arquitectura, las decisiones técnicas y los bugs reales encontrados durante el desarrollo, están en **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
@@ -98,14 +98,13 @@ Notas:
 - El **saldo pendiente de cada deuda** no se edita a mano: cada deuda guarda su saldo conocido y el mes al que corresponde (`balanceAsOf`), y la app resta una cuota por cada mes transcurrido desde entonces.
 - El **fondo de emergencia y las inversiones** (pantalla "Ahorro") funcionan igual que las deudas pero al revés: se vinculan a una cuenta y guardan un saldo de partida + el mes al que corresponde, y la app suma sola cada mes el balance neto de esa cuenta desde entonces. El fondo de emergencia es como mucho uno; las inversiones pueden ser varias, con su propio alta/baja.
 - El **score de salud financiera** (pantalla "Resumen") combina tasa de ahorro, carga de deuda, progreso del fondo de emergencia y dinero ocioso en un único número 0-100, con desglose explicado factor a factor.
-- El **simulador** (pantalla "Simulador") deja tocar ingresos, gastos y aportación extra a ahorro con sliders y ver el impacto en cashflow, tasa de ahorro y score al momento, sin guardar nada.
 - Las **propiedades** (pantalla "Ahorro") guardan nombre + valor estimado de mercado, que suma al patrimonio neto. Si dan alquiler, se vincula el ingreso (y los gastos) a esa propiedad real desde un desplegable — para ver el beneficio neto — esa renta ya cuenta como ingreso normal, no se vuelve a sumar al patrimonio.
 
 ## Estructura
 
 - `src/domain/` — tipos y cálculos financieros puros (sin UI, sin red).
 - `src/data/` — `api.ts` + `useFinancialData.ts` (cliente HTTP y estado de la app).
-- `src/features/` — una pantalla por carpeta (resumen, gastos [ingresos+gastos+transferencias+cuentas], deudas, ahorro, simulador, historial), con sus formularios de alta. `perfil/` es la excepción: no es una sección de navegación, es el contenido del modal que abre el botón "Perfil" de "Resumen". Las recomendaciones tampoco tienen pantalla propia: la lista completa vive en la tarjeta "Qué deberías mirar" de "Resumen".
+- `src/features/` — una pantalla por carpeta (resumen, gastos [ingresos+gastos+transferencias+cuentas], deudas, ahorro), con sus formularios de alta. `perfil/` es la excepción: no es una sección de navegación, es el contenido del modal que abre el botón "Perfil" de "Resumen". Las recomendaciones tampoco tienen pantalla propia: la lista completa vive en la tarjeta "Qué deberías mirar" de "Resumen".
 - `src/components/Modal.tsx` — cascarón de modal compartido (overlay, cabecera, cerrar), usado por el modal de Perfil y el de importar extractos bancarios.
 - `src/components/` — piezas de UI reutilizables (incluye `ConfirmProvider`, el modal de confirmación de borrados).
 - `backend/` — API en Node + TypeScript (Fastify) sobre Postgres, arquitectura hexagonal (`domain/` → `application/` → `infrastructure/`). Ver `backend/README.md`.

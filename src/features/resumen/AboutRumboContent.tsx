@@ -10,7 +10,6 @@ export function AboutRumboContent() {
       <ul className="list-disc space-y-1.5 pl-5">
         <li>Vincula el fondo de emergencia, inversiones y propiedades a una cuenta real para que se actualicen solos.</li>
         <li>Importa tus extractos bancarios de vez en cuando para no perder gastos recurrentes.</li>
-        <li>Guarda un snapshot cada mes en Historial: ves tu evolución y de paso haces una copia de seguridad.</li>
       </ul>
     </div>
   );

@@ -6,9 +6,7 @@ import { ResumenScreen } from "./features/resumen/ResumenScreen";
 import { GastosScreen } from "./features/gastos/GastosScreen";
 import { DeudasScreen } from "./features/deudas/DeudasScreen";
 import { AhorroScreen } from "./features/ahorro/AhorroScreen";
-import { SimuladorScreen } from "./features/simulador/SimuladorScreen";
-import { HistorialScreen } from "./features/historial/HistorialScreen";
-import { HomeIcon, ExpenseIcon, DebtIcon, SavingsIcon, SimulatorIcon, TrendIcon, LogoutIcon } from "./components/icons";
+import { HomeIcon, ExpenseIcon, DebtIcon, SavingsIcon, LogoutIcon } from "./components/icons";
 import { LoadingState } from "./components/LoadingState";
 import { BrandMark } from "./components/BrandMark";
 import { LoginScreen } from "./features/auth/LoginScreen";
@@ -17,7 +15,7 @@ import { LoginScreen } from "./features/auth/LoginScreen";
 // consulte a diario — vive como un botón/modal dentro de "Resumen" (ver ResumenScreen).
 // "Recomendaciones" tampoco: la lista completa de consejos vive en la tarjeta "Qué
 // deberías mirar" de "Resumen", no en una sección propia.
-type Section = "resumen" | "gastos" | "deudas" | "ahorro" | "simulador" | "historial";
+type Section = "resumen" | "gastos" | "deudas" | "ahorro";
 
 const sections: {
   id: Section;
@@ -29,8 +27,6 @@ const sections: {
   { id: "gastos", label: "Ingresos y Gastos", shortLabel: "Gastos", icon: ExpenseIcon },
   { id: "deudas", label: "Deudas", shortLabel: "Deudas", icon: DebtIcon },
   { id: "ahorro", label: "Ahorro", shortLabel: "Ahorro", icon: SavingsIcon },
-  { id: "simulador", label: "Simulador", shortLabel: "Simular", icon: SimulatorIcon },
-  { id: "historial", label: "Historial", shortLabel: "Historial", icon: TrendIcon },
 ];
 
 export default function App() {
@@ -176,21 +172,6 @@ export default function App() {
                   onAddProperty={data.addProperty}
                   onUpdateProperty={data.updateProperty}
                   onRemoveProperty={data.removeProperty}
-                />
-              )}
-              {section === "simulador" && (
-                <SimuladorScreen profile={data.profile} accounts={data.accounts} trackers={data.trackers} />
-              )}
-              {section === "historial" && (
-                <HistorialScreen
-                  profile={data.profile}
-                  accounts={data.accounts}
-                  trackers={data.trackers}
-                  properties={data.properties}
-                  snapshots={data.snapshots}
-                  onAddSnapshot={data.addSnapshot}
-                  onUpdateSnapshot={data.updateSnapshot}
-                  onRemoveSnapshot={data.removeSnapshot}
                 />
               )}
             </>

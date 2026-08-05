@@ -524,68 +524,6 @@ export function financialHealthScore(
   });
 }
 
-export interface SimulatorAdjustments {
-  /** Cambio mensual hipotético de ingresos, en euros (puede ser negativo). */
-  incomeDelta: number;
-  /** Cambio mensual hipotético de gastos, en euros (puede ser negativo). */
-  expensesDelta: number;
-  /** Aportación mensual extra hipotética a ahorro/inversión, en euros (puede ser negativa). */
-  extraSavingsDelta: number;
-}
-
-export interface SimulatorResult {
-  income: number;
-  expenses: number;
-  netCashflow: number;
-  deliberateSavings: number;
-  savingsRate: number;
-  debtLoad: number;
-  healthScore: FinancialHealthScore;
-}
-
-/**
- * Recalcula cashflow, tasa de ahorro, carga de deuda y score de salud
- * financiera bajo unos ajustes hipotéticos, sin tocar los datos reales. El
- * progreso del fondo de emergencia y el ratio de dinero ocioso son saldos
- * acumulados, no flujos mensuales, así que no cambian con estos ajustes
- * (proyectarlos hacia adelante es un problema distinto, no este simulador).
- */
-export function simulateAdjustments(
-  profile: FinancialProfile,
-  accountBalances: AccountBalance[],
-  trackers: SavingsTracker[],
-  emergencyFundBalance: number,
-  adjustments: SimulatorAdjustments,
-): SimulatorResult {
-  const baseIncome = totalMonthlyIncome(profile);
-  const baseExpenses = totalMonthlyExpenses(profile);
-  const baseSavings = deliberateSavingsAndInvestment(accountBalances, trackers);
-  const debtPayments = totalMonthlyDebtPayments(profile);
-
-  const income = Math.max(0, baseIncome + adjustments.incomeDelta);
-  const expenses = Math.max(0, baseExpenses + adjustments.expensesDelta);
-  const savings = Math.max(0, baseSavings + adjustments.extraSavingsDelta);
-
-  const rate = income === 0 ? 0 : savings / income;
-  const debtLoad = income === 0 ? 0 : debtPayments / income;
-  const healthScore = scoreFromMetrics({
-    savingsRate: rate,
-    debtLoad,
-    emergencyFundProgress: emergencyFundProgress(profile, emergencyFundBalance),
-    idleRatio: idleRatio(profile, accountBalances, trackers),
-  });
-
-  return {
-    income,
-    expenses,
-    netCashflow: income - expenses,
-    deliberateSavings: savings,
-    savingsRate: rate,
-    debtLoad,
-    healthScore,
-  };
-}
-
 function sum(values: number[]): number {
   return values.reduce((a, b) => a + b, 0);
 }
