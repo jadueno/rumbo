@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  accountsInDeficit,
   balanceByAccount,
   buildRecommendations,
   calculateAge,
@@ -81,6 +82,25 @@ describe("netMonthlyCashflow", () => {
       expenses: [{ id: "1", group: "Fijos", account: "A", label: "Alquiler", monthlyAmount: 1500 }],
     });
     expect(netMonthlyCashflow(profile)).toBe(-500);
+  });
+});
+
+describe("accountsInDeficit", () => {
+  it("devuelve solo las cuentas con balance negativo, cada una con su propia cifra", () => {
+    const accountBalances = [
+      { account: "BBVA", income: 0, expenses: 1309, transfersIn: 0, transfersOut: 0, balance: -1309 },
+      { account: "ING", income: 2000, expenses: 1500, transfersIn: 0, transfersOut: 0, balance: 500 },
+    ];
+    expect(accountsInDeficit(accountBalances)).toEqual([
+      { account: "BBVA", income: 0, expenses: 1309, transfersIn: 0, transfersOut: 0, balance: -1309 },
+    ]);
+  });
+
+  it("devuelve un array vacío si ninguna cuenta está en negativo", () => {
+    const accountBalances = [
+      { account: "BBVA", income: 1000, expenses: 500, transfersIn: 0, transfersOut: 0, balance: 500 },
+    ];
+    expect(accountsInDeficit(accountBalances)).toEqual([]);
   });
 });
 

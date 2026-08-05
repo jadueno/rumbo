@@ -61,6 +61,11 @@ export function netMonthlyCashflow(profile: FinancialProfile): number {
   return totalMonthlyIncome(profile) - totalMonthlyExpenses(profile);
 }
 
+/** Cuentas con balance negativo, tal cual aparecen en `accountBalances` (sin compensar entre ellas). */
+export function accountsInDeficit(accountBalances: AccountBalance[]): AccountBalance[] {
+  return accountBalances.filter((a) => a.balance < 0);
+}
+
 /**
  * Suma de los déficits (balance negativo) de las cuentas, cuenta a cuenta: lo que
  * realmente falta cada mes. No se compensa con el sobrante de otras cuentas — ese
@@ -69,7 +74,7 @@ export function netMonthlyCashflow(profile: FinancialProfile): number {
  * la recomendación correspondiente en `buildRecommendations`).
  */
 export function totalAccountShortfall(accountBalances: AccountBalance[]): number {
-  return sum(accountBalances.filter((a) => a.balance < 0).map((a) => -a.balance));
+  return sum(accountsInDeficit(accountBalances).map((a) => -a.balance));
 }
 
 /** Suma de los superávits (balance positivo) de las cuentas: dinero que queda como ahorro en cada cuenta. */
@@ -348,9 +353,9 @@ export function buildRecommendations(
 
   const shortfall = totalAccountShortfall(accountBalances);
   if (shortfall > 0) {
-    const accountsInDeficit = accountBalances.filter((a) => a.balance < 0);
-    const names = accountsInDeficit.map((a) => a.account).join(", ");
-    const plural = accountsInDeficit.length > 1;
+    const deficitAccounts = accountsInDeficit(accountBalances);
+    const names = deficitAccounts.map((a) => a.account).join(", ");
+    const plural = deficitAccounts.length > 1;
     const surplus = totalAccountSurplus(accountBalances);
     const detail =
       surplus > 0

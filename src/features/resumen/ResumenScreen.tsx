@@ -1,13 +1,13 @@
 import { useState } from "react";
 import type { Account, FinancialProfile, Profile, Property, SavingsTracker } from "../../domain/types";
 import {
+  accountsInDeficit,
   balanceByAccount,
   buildRecommendations,
   currentEmergencyFundBalance,
   financialHealthScore,
   formatEUR,
   netMonthlyCashflow,
-  totalAccountShortfall,
 } from "../../domain/calculations";
 import { Card } from "../../components/Card";
 import { RecommendationTimeline } from "../../components/RecommendationTimeline";
@@ -38,9 +38,9 @@ export function ResumenScreen({
   const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
   const net = netMonthlyCashflow(profile);
   // El sobrante de una cuenta es ahorro suyo, no dinero disponible para tapar el
-  // descubierto de otra: igual que en "Ingresos y Gastos", lo que "falta" se calcula
-  // cuenta a cuenta, sin compensar un déficit con el superávit de otra cuenta.
-  const shortfall = totalAccountShortfall(accountBalances);
+  // descubierto de otra: igual que en "Ingresos y Gastos", se lista cada cuenta en
+  // negativo por separado, sin compensarla con el superávit de otra cuenta.
+  const deficitAccounts = accountsInDeficit(accountBalances);
   const efBalance = currentEmergencyFundBalance(trackers, accountBalances);
   const healthScore = financialHealthScore(profile, accountBalances, trackers, efBalance);
   const recommendations = buildRecommendations(profile, efBalance, accountBalances, trackers, properties).sort(
@@ -78,13 +78,18 @@ export function ResumenScreen({
             {formatEUR(net)}
             <span className="ml-1 text-lg font-semibold">/mes</span>
           </p>
-          {shortfall > 0 && (
-            <span
-              className="mt-4 inline-flex items-center rounded-full bg-[var(--surface-1)] px-3 py-1 text-sm font-bold shadow-card"
-              style={{ color: "var(--status-critical)" }}
-            >
-              Te faltan {formatEUR(shortfall)}
-            </span>
+          {deficitAccounts.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {deficitAccounts.map((a) => (
+                <span
+                  key={a.account}
+                  className="inline-flex items-center rounded-full bg-[var(--surface-1)] px-3 py-1 text-sm font-bold shadow-card"
+                  style={{ color: "var(--status-critical)" }}
+                >
+                  {a.account}: {formatEUR(a.balance)}
+                </span>
+              ))}
+            </div>
           )}
         </div>
       </div>

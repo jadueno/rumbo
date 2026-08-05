@@ -9,9 +9,9 @@ import type {
   Property,
 } from "../../domain/types";
 import {
+  accountsInDeficit,
   balanceByAccount,
   formatEUR,
-  totalAccountShortfall,
   totalMonthlyExpenses,
   totalMonthlyIncome,
 } from "../../domain/calculations";
@@ -71,9 +71,10 @@ export function GastosScreen({
   const accountNames = accounts.map((a) => a.name);
   const accountBalances = balanceByAccount(profile, accountNames);
   // El sobrante de una cuenta es ahorro suyo, no dinero disponible para tapar el
-  // descubierto de otra: por eso lo que "falta" se calcula cuenta a cuenta, sin
-  // compensar un déficit con el superávit de otra cuenta (ver recomendaciones).
-  const shortfall = totalAccountShortfall(accountBalances);
+  // descubierto de otra: por eso se lista cada cuenta en negativo por separado,
+  // en vez de un único total compensado con el superávit de otra cuenta (ver
+  // recomendaciones para la sugerencia de mover dinero entre cuentas).
+  const deficitAccounts = accountsInDeficit(accountBalances);
 
   async function handleRemoveIncome(label: string, id: string) {
     if (await confirm(`¿Eliminar el ingreso "${label}"? Esta acción no se puede deshacer.`)) {
@@ -113,13 +114,23 @@ export function GastosScreen({
           Ingresas <strong className="font-bold text-[var(--text-primary)]">{formatEUR(totalIncome)}</strong>{" "}
           y te queda por pagar{" "}
           <strong className="font-bold text-[var(--text-primary)]">{formatEUR(totalExpenses)}</strong> al mes.
-          {shortfall > 0 && (
-            <strong className="font-bold" style={{ color: "var(--status-critical)" }}>
-              {" "}
-              (Te faltan {formatEUR(shortfall)})
-            </strong>
-          )}
         </p>
+        {deficitAccounts.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {deficitAccounts.map((a) => (
+              <span
+                key={a.account}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold"
+                style={{
+                  color: "var(--status-critical)",
+                  backgroundColor: "color-mix(in srgb, var(--status-critical) 10%, var(--surface-1))",
+                }}
+              >
+                {a.account}: {formatEUR(a.balance)}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <Card>
