@@ -7,6 +7,7 @@ import {
   financialHealthScore,
   formatEUR,
   netMonthlyCashflow,
+  totalAccountShortfall,
 } from "../../domain/calculations";
 import { Card } from "../../components/Card";
 import { RecommendationTimeline } from "../../components/RecommendationTimeline";
@@ -36,6 +37,10 @@ export function ResumenScreen({
   const [showAbout, setShowAbout] = useState(false);
   const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
   const net = netMonthlyCashflow(profile);
+  // El sobrante de una cuenta es ahorro suyo, no dinero disponible para tapar el
+  // descubierto de otra: igual que en "Ingresos y Gastos", lo que "falta" se calcula
+  // cuenta a cuenta, sin compensar un déficit con el superávit de otra cuenta.
+  const shortfall = totalAccountShortfall(accountBalances);
   const efBalance = currentEmergencyFundBalance(trackers, accountBalances);
   const healthScore = financialHealthScore(profile, accountBalances, trackers, efBalance);
   const recommendations = buildRecommendations(profile, efBalance, accountBalances, trackers, properties).sort(
@@ -73,12 +78,12 @@ export function ResumenScreen({
             {formatEUR(net)}
             <span className="ml-1 text-lg font-semibold">/mes</span>
           </p>
-          {net !== 0 && (
+          {shortfall > 0 && (
             <span
               className="mt-4 inline-flex items-center rounded-full bg-[var(--surface-1)] px-3 py-1 text-sm font-bold shadow-card"
-              style={{ color: net < 0 ? "var(--status-critical)" : "var(--status-good)" }}
+              style={{ color: "var(--status-critical)" }}
             >
-              {net < 0 ? "Te faltan" : "Te sobran"} {formatEUR(Math.abs(net))}
+              Te faltan {formatEUR(shortfall)}
             </span>
           )}
         </div>
