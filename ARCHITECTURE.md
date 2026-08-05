@@ -120,6 +120,15 @@ Es una app de finanzas personales reales, así que la privacidad no es un añadi
 - **Login obligatorio en el despliegue público.** Ver "Login de un solo usuario" más arriba — la instancia pública nunca queda accesible sin credenciales.
 - **Auditoría de historial antes de hacer el repo público.** Antes de subir el proyecto a GitHub se auditó *todo* el historial de commits (no solo el estado actual) buscando cualquier dato real que hubiera quedado en un mensaje de commit o en un valor de ejemplo (placeholders de formulario, contraseñas por defecto). Se encontraron dos mensajes de commit que mencionaban entidades reales y un placeholder con una fecha real, y se reescribieron de forma no interactiva (`git filter-branch --msg-filter`) antes de publicar — el contenido de los commits no cambió, solo el texto descriptivo.
 
+## Despliegue en producción
+
+`rumbo.jadueno.com` corre en el mismo VPS que el resto de proyectos personales (mismo patrón que PokéVault): un clon git plano en `/var/www/rumbo.jadueno.com`, frontend servido como estático por nginx desde `dist/` y backend compilado corriendo con PM2 (`rumbo-api`, puerto interno 3005) detrás de un `proxy_pass` de nginx en `/api/`. Postgres es una instancia local del propio VPS, no un servicio gestionado.
+
+- **Deploy automático al hacer merge a `main`, pero solo si CI pasa primero.** `.github/workflows/deploy.yml` escucha `workflow_run` del workflow `CI` (no el evento `push` directamente) y solo se ejecuta si `conclusion == 'success'` — un commit que rompe lint/tests/build nunca llega a desplegarse, aunque esté en `main`.
+- **La CI de GitHub Actions no tiene acceso de shell al servidor.** Se conecta por SSH con una clave dedicada (`DEPLOY_SSH_KEY`, generada solo para esto) que en `authorized_keys` del VPS lleva un `command="/home/ubuntu/deploy-rumbo.sh"` forzado más `no-pty,no-port-forwarding,no-X11-forwarding,no-agent-forwarding`: da igual qué comando mande el cliente SSH, el servidor solo ejecuta ese script. Si el secret se filtrara alguna vez, lo máximo que permite es volver a correr el propio deploy, no una shell arbitraria en un servidor que también aloja otros proyectos con datos reales.
+- **`deploy-rumbo.sh`** (en el VPS, fuera del repo) hace `git fetch` + `git reset --hard origin/main`, build de frontend y backend, `node-pg-migrate up` contra la base real (aditivo, igual que se hacía a mano) y `pm2 restart rumbo-api`; usa `flock` para no pisarse si dos deploys se solapan, y deja log en `/home/ubuntu/deploy-rumbo.log`.
+- **La huella del host SSH está fijada de antemano** en el propio workflow (no confianza-en-el-primer-uso desde el runner de GitHub), para no aceptar a ciegas la clave del servidor la primera vez que un runner efímero se conecta.
+
 ## Rigor de pruebas: bugs reales encontrados, no hipotéticos
 
 Todo el CRUD se verificó de extremo a extremo con Playwright manejado directamente (sin usar un MCP de navegador), incluyendo altas y bajas con importes no redondos a propósito. Eso sacó a la luz varios bugs reales que con datos "bonitos" (números enteros redondos) habrían pasado desapercibidos:
