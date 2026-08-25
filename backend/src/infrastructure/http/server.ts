@@ -4,6 +4,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import type { Pool } from "pg";
 import { registerAuth, type LoginConfig } from "./auth.js";
+import { isAllowedOrigin } from "./corsOrigin.js";
 import { registerCrudRoutes } from "./crudRoutes.js";
 import { registerAccountRoutes } from "./accountRoutes.js";
 import { registerProfileRoutes } from "./profileRoutes.js";
@@ -29,7 +30,7 @@ export async function buildServer(pool: Pool, options: { logger?: boolean; login
   // CSP desactivada a propósito: esta API solo devuelve JSON, nunca HTML/JS, así que
   // una Content-Security-Policy (pensada para páginas renderizadas) no aporta nada aquí.
   await app.register(helmet, { contentSecurityPolicy: false });
-  await app.register(cors, { origin: true, methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"] });
+  await app.register(cors, { origin: isAllowedOrigin, methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"] });
   // Límite generoso: la app la usa una sola persona, así que esto no debería notarse
   // nunca en uso normal, solo frena un abuso (o un bug) que dispare peticiones sin control.
   await app.register(rateLimit, { max: 300, timeWindow: "1 minute" });

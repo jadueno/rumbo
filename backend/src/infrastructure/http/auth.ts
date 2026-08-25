@@ -33,7 +33,12 @@ export function registerAuth(app: FastifyInstance, loginConfig: LoginConfig | un
 
   if (!loginConfig) return;
 
-  app.post("/login", async (request, reply) => {
+  // Límite propio, más estricto que el general de la API (300/min compartido entre
+  // todas las rutas): scrypt es deliberadamente costoso en CPU, así que /login no es
+  // solo un objetivo de fuerza bruta sino también de agotamiento de recursos si alguien
+  // dispara muchos intentos seguidos. 10/min por IP es de sobra para un usuario real que
+  // se equivoca de contraseña alguna vez.
+  app.post("/login", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (request, reply) => {
     const { username, password } = (request.body ?? {}) as { username?: string; password?: string };
     const validUsername = timingSafeStringEqual(username ?? "", loginConfig.username);
     const validPassword = !!password && verifyPassword(password, loginConfig.passwordHash);

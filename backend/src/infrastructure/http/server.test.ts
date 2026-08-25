@@ -279,6 +279,20 @@ describe("login opcional, de extremo a extremo con el servidor real", () => {
     await authedApp.close();
   });
 
+  it("/login tiene su propio límite de intentos (más estricto que el general de la API)", async () => {
+    const authedApp = await buildServer(pool, {
+      logger: false,
+      loginConfig: { username: "demo", passwordHash: hashPassword("demo-pass"), sessionSecret: "un-secreto" },
+    });
+    for (let i = 0; i < 10; i++) {
+      const res = await authedApp.inject({ method: "POST", url: "/login", payload: { username: "demo", password: "mal" } });
+      expect(res.statusCode).toBe(401);
+    }
+    const res = await authedApp.inject({ method: "POST", url: "/login", payload: { username: "demo", password: "mal" } });
+    expect(res.statusCode).toBe(429);
+    await authedApp.close();
+  });
+
   it("POST /login responde 401 con el usuario incorrecto", async () => {
     const authedApp = await buildServer(pool, {
       logger: false,
