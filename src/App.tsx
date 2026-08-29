@@ -152,6 +152,7 @@ export default function App() {
                   accounts={data.accounts}
                   properties={data.properties}
                   onAddAccount={data.addAccount}
+                  onUpdateAccount={data.updateAccount}
                   onRemoveAccount={data.removeAccount}
                   onAddIncome={data.addIncome}
                   onUpdateIncome={data.updateIncome}

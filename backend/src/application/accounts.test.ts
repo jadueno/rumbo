@@ -16,6 +16,12 @@ function createFakeAccountRepository(): AccountRepository {
       rows.push(created);
       return created;
     },
+    async update(id: string, entity: NewAccount) {
+      const account = rows.find((r) => r.id === id);
+      if (!account) return null;
+      account.name = entity.name;
+      return account;
+    },
     async remove(id: string) {
       const index = rows.findIndex((r) => r.id === id);
       if (index === -1) return false;
@@ -48,5 +54,27 @@ describe("createAccountUseCases", () => {
   it("devuelve false al borrar una cuenta inexistente", async () => {
     const useCases = createAccountUseCases(createFakeAccountRepository());
     expect(await useCases.remove("no-existe")).toBe(false);
+  });
+
+  it("renombra una cuenta recortando espacios del nombre", async () => {
+    const repo = createFakeAccountRepository();
+    const useCases = createAccountUseCases(repo);
+    const account = await useCases.create({ name: "ING" });
+    const updated = await useCases.update(account.id, { name: "  ING - Ahorro  " });
+    expect(updated?.name).toBe("ING - Ahorro");
+  });
+
+  it("rechaza renombrar a un nombre vacío", async () => {
+    const repo = createFakeAccountRepository();
+    const useCases = createAccountUseCases(repo);
+    const account = await useCases.create({ name: "ING" });
+    await expect(callAsync(() => useCases.update(account.id, { name: "   " }))).rejects.toThrow(
+      "no puede estar vacío",
+    );
+  });
+
+  it("devuelve null al renombrar una cuenta inexistente", async () => {
+    const useCases = createAccountUseCases(createFakeAccountRepository());
+    expect(await useCases.update("no-existe", { name: "ING" })).toBeNull();
   });
 });

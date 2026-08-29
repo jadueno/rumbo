@@ -78,6 +78,76 @@ describe("/accounts", () => {
     expect(res.json().error).toContain("no puede estar vacío");
   });
 
+  it("al renombrar una cuenta, actualiza en cascada sus ingresos, gastos, transferencias y seguimientos de ahorro", async () => {
+    const account = (await app.inject({ method: "POST", url: "/accounts", payload: { name: "ING" } })).json();
+    await app.inject({ method: "POST", url: "/accounts", payload: { name: "Ibercaja" } });
+
+    const income = (
+      await app.inject({
+        method: "POST",
+        url: "/incomes",
+        payload: { account: "ING", label: "Nómina", monthlyAmount: 2000, property: null },
+      })
+    ).json();
+    const expense = (
+      await app.inject({
+        method: "POST",
+        url: "/expenses",
+        payload: { category: "Fijos", account: "ING", property: null, label: "Alquiler", monthlyAmount: 500 },
+      })
+    ).json();
+    const transfer = (
+      await app.inject({
+        method: "POST",
+        url: "/transfers",
+        payload: { fromAccount: "ING", toAccount: "Ibercaja", monthlyAmount: 100 },
+      })
+    ).json();
+    const tracker = (
+      await app.inject({
+        method: "POST",
+        url: "/savings-trackers",
+        payload: {
+          kind: "emergency_fund",
+          name: "Fondo",
+          account: "ING",
+          initialBalance: 1000,
+          initialBalanceAsOf: "2026-01",
+        },
+      })
+    ).json();
+
+    const update = await app.inject({
+      method: "PUT",
+      url: `/accounts/${account.id}`,
+      payload: { name: "ING - Ahorro" },
+    });
+    expect(update.statusCode).toBe(200);
+    expect(update.json().name).toBe("ING - Ahorro");
+
+    expect((await app.inject({ method: "GET", url: "/incomes" })).json()).toContainEqual(
+      expect.objectContaining({ id: income.id, account: "ING - Ahorro" }),
+    );
+    expect((await app.inject({ method: "GET", url: "/expenses" })).json()).toContainEqual(
+      expect.objectContaining({ id: expense.id, account: "ING - Ahorro" }),
+    );
+    expect((await app.inject({ method: "GET", url: "/transfers" })).json()).toContainEqual(
+      expect.objectContaining({ id: transfer.id, fromAccount: "ING - Ahorro" }),
+    );
+    expect((await app.inject({ method: "GET", url: "/savings-trackers" })).json()).toContainEqual(
+      expect.objectContaining({ id: tracker.id, account: "ING - Ahorro" }),
+    );
+  });
+
+  it("responde 404 al renombrar una cuenta inexistente", async () => {
+    const res = await app.inject({
+      method: "PUT",
+      url: "/accounts/00000000-0000-0000-0000-000000000000",
+      payload: { name: "ING" },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
   it("al borrar una cuenta, borra en cascada sus ingresos, gastos, transferencias y seguimientos de ahorro", async () => {
     const account = (await app.inject({ method: "POST", url: "/accounts", payload: { name: "ING" } })).json();
     await app.inject({ method: "POST", url: "/accounts", payload: { name: "Ibercaja" } });

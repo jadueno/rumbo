@@ -6,7 +6,6 @@ import type { Pool } from "pg";
 import { registerAuth, type LoginConfig } from "./auth.js";
 import { isAllowedOrigin } from "./corsOrigin.js";
 import { registerCrudRoutes } from "./crudRoutes.js";
-import { registerAccountRoutes } from "./accountRoutes.js";
 import { registerProfileRoutes } from "./profileRoutes.js";
 import { createAccountRepository } from "../db/repositories/accountRepository.js";
 import { createProfileRepository } from "../db/repositories/profileRepository.js";
@@ -48,7 +47,7 @@ export async function buildServer(pool: Pool, options: { logger?: boolean; login
   const savingsTrackerRepository = createSavingsTrackerRepository(pool);
   const propertyRepository = createPropertyRepository(pool);
 
-  registerAccountRoutes(app, createAccountUseCases(accountRepository));
+  registerCrudRoutes(app, "/accounts", createAccountUseCases(accountRepository));
   registerProfileRoutes(app, createProfileUseCases(profileRepository));
   registerCrudRoutes(app, "/incomes", createIncomeUseCases(incomeRepository));
   registerCrudRoutes(app, "/expenses", createExpenseUseCases(expenseRepository));

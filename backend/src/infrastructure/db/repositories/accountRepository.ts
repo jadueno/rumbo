@@ -13,6 +13,9 @@ function toAccount(row: AccountRow): Account {
 export interface AccountRepository {
   list(): Promise<Account[]>;
   create(entity: NewAccount): Promise<Account>;
+  /** Renombra la cuenta y, en cascada, actualiza todo lo que la referencie por el nombre
+   * anterior (ingresos, gastos, transferencias, seguimientos de ahorro/inversión). */
+  update(id: string, entity: NewAccount): Promise<Account | null>;
   /** Borra la cuenta y, en cascada, todo lo que la referencie por nombre (ingresos, gastos,
    * transferencias, seguimientos de ahorro/inversión). */
   remove(id: string): Promise<boolean>;
@@ -31,6 +34,46 @@ export function createAccountRepository(pool: Pool): AccountRepository {
         [entity.name],
       );
       return toAccount(rows[0]);
+    },
+
+    async update(id, entity) {
+      const client = await pool.connect();
+      try {
+        await client.query("begin");
+        const { rows } = await client.query<AccountRow>("select id, name from accounts where id = $1", [id]);
+        const account = rows[0];
+        if (!account) {
+          await client.query("rollback");
+          return null;
+        }
+        const { rows: updatedRows } = await client.query<AccountRow>(
+          "update accounts set name = $1, updated_at = now() where id = $2 returning id, name",
+          [entity.name, id],
+        );
+        if (account.name !== entity.name) {
+          await client.query("update incomes set account = $1 where account = $2", [entity.name, account.name]);
+          await client.query("update expenses set account = $1 where account = $2", [entity.name, account.name]);
+          await client.query("update transfers set from_account = $1 where from_account = $2", [
+            entity.name,
+            account.name,
+          ]);
+          await client.query("update transfers set to_account = $1 where to_account = $2", [
+            entity.name,
+            account.name,
+          ]);
+          await client.query("update savings_trackers set account = $1 where account = $2", [
+            entity.name,
+            account.name,
+          ]);
+        }
+        await client.query("commit");
+        return toAccount(updatedRows[0]);
+      } catch (error) {
+        await client.query("rollback");
+        throw error;
+      } finally {
+        client.release();
+      }
     },
 
     async remove(id) {

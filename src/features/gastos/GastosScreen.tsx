@@ -38,6 +38,7 @@ interface Props {
   accounts: Account[];
   properties: Property[];
   onAddAccount: (account: NewAccount) => Promise<void>;
+  onUpdateAccount: (id: string, account: NewAccount) => Promise<void>;
   onRemoveAccount: (id: string) => Promise<void>;
   onAddIncome: (income: NewIncomeSource) => Promise<void>;
   onUpdateIncome: (id: string, income: NewIncomeSource) => Promise<void>;
@@ -53,6 +54,7 @@ export function GastosScreen({
   accounts,
   properties,
   onAddAccount,
+  onUpdateAccount,
   onRemoveAccount,
   onAddIncome,
   onUpdateIncome,
@@ -65,6 +67,7 @@ export function GastosScreen({
   const confirm = useConfirm();
   const [openForm, setOpenForm] = useState<"income" | "expense" | "transfer" | "account" | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
+  const [editingAccount, setEditingAccount] = useState<{ id: string; name: string } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const totalIncome = totalMonthlyIncome(profile);
   const totalExpenses = totalMonthlyExpenses(profile);
@@ -101,6 +104,17 @@ export function GastosScreen({
       await onRemoveAccount(account.id);
     } catch (err) {
       setAccountError(err instanceof Error ? err.message : "No se ha podido eliminar la cuenta");
+    }
+  }
+
+  async function handleRenameAccount() {
+    if (!editingAccount) return;
+    setAccountError(null);
+    try {
+      await onUpdateAccount(editingAccount.id, { name: editingAccount.name });
+      setEditingAccount(null);
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : "No se ha podido renombrar la cuenta");
     }
   }
 
@@ -277,18 +291,60 @@ export function GastosScreen({
             return (
               <Card key={account}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-[var(--text-primary)]">{account}</h3>
-                    {accountEntity && (
+                  {editingAccount?.id === accountEntity?.id ? (
+                    <form
+                      className="flex items-center gap-1.5"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleRenameAccount();
+                      }}
+                    >
+                      <input
+                        type="text"
+                        autoFocus
+                        aria-label={`Renombrar cuenta ${account}`}
+                        value={editingAccount?.name ?? ""}
+                        onChange={(e) => setEditingAccount((s) => (s ? { ...s, name: e.target.value } : s))}
+                        className={`rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1 text-sm font-semibold text-[var(--text-primary)] ${focusRing}`}
+                      />
+                      <button
+                        type="submit"
+                        className={`rounded-lg px-2 py-1 text-xs font-semibold transition-colors hover:bg-[var(--gridline)] ${focusRing}`}
+                        style={{ color: "var(--series-savings)" }}
+                      >
+                        Guardar
+                      </button>
                       <button
                         type="button"
-                        onClick={() => handleRemoveAccount(accountEntity)}
-                        className={`rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] hover:text-[var(--status-critical)] ${focusRing}`}
+                        onClick={() => setEditingAccount(null)}
+                        className={`rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] ${focusRing}`}
                       >
-                        Eliminar cuenta
+                        Cancelar
                       </button>
-                    )}
-                  </div>
+                    </form>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-[var(--text-primary)]">{account}</h3>
+                      {accountEntity && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setEditingAccount({ id: accountEntity.id, name: accountEntity.name })}
+                            className={`rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] hover:text-[var(--text-primary)] ${focusRing}`}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAccount(accountEntity)}
+                            className={`rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] hover:text-[var(--status-critical)] ${focusRing}`}
+                          >
+                            Eliminar cuenta
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
                   <p className="text-xl font-bold tabular-nums" style={{ color: balanceColor }}>
                     {formatEUR(balance)}
                   </p>

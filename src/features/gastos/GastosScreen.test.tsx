@@ -23,6 +23,7 @@ const properties: Property[] = [];
 function renderScreen(profile: FinancialProfile) {
   const handlers = {
     onAddAccount: vi.fn().mockResolvedValue(undefined),
+    onUpdateAccount: vi.fn().mockResolvedValue(undefined),
     onRemoveAccount: vi.fn().mockResolvedValue(undefined),
     onAddIncome: vi.fn().mockResolvedValue(undefined),
     onUpdateIncome: vi.fn().mockResolvedValue(undefined),
@@ -96,5 +97,18 @@ describe("GastosScreen", () => {
     await user.click(screen.getByRole("button", { name: "Eliminar" }));
 
     expect(handlers.onRemoveIncome).toHaveBeenCalledWith("i1");
+  });
+
+  it("permite renombrar una cuenta desde su tarjeta", async () => {
+    const user = userEvent.setup();
+    const handlers = renderScreen(baseProfile());
+
+    await user.click(screen.getByRole("button", { name: "Editar" }));
+    const input = screen.getByLabelText("Renombrar cuenta ING");
+    await user.clear(input);
+    await user.type(input, "ING - Ahorro");
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+
+    expect(handlers.onUpdateAccount).toHaveBeenCalledWith("1", { name: "ING - Ahorro" });
   });
 });

@@ -100,6 +100,10 @@ export function useFinancialData(enabled = true) {
       await accountClient.create(entity);
       await reload();
     },
+    updateAccount: async (id: string, entity: NewAccount) => {
+      await accountClient.update(id, entity);
+      await reload();
+    },
     removeAccount: async (id: string) => {
       await accountClient.remove(id);
       await reload();
