@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import type {
   Account,
+  ExpenseItem,
   FinancialProfile,
   NewAccount,
   NewExpenseItem,
@@ -44,6 +45,7 @@ interface Props {
   onUpdateIncome: (id: string, income: NewIncomeSource) => Promise<void>;
   onRemoveIncome: (id: string) => Promise<void>;
   onAddExpense: (expense: NewExpenseItem) => Promise<void>;
+  onUpdateExpense: (id: string, expense: NewExpenseItem) => Promise<void>;
   onRemoveExpense: (id: string) => Promise<void>;
   onAddTransfer: (transfer: NewTransfer) => Promise<void>;
   onRemoveTransfer: (id: string) => Promise<void>;
@@ -60,6 +62,7 @@ export function GastosScreen({
   onUpdateIncome,
   onRemoveIncome,
   onAddExpense,
+  onUpdateExpense,
   onRemoveExpense,
   onAddTransfer,
   onRemoveTransfer,
@@ -68,6 +71,7 @@ export function GastosScreen({
   const [openForm, setOpenForm] = useState<"income" | "expense" | "transfer" | "account" | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
   const [editingAccount, setEditingAccount] = useState<{ id: string; name: string } | null>(null);
+  const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const totalIncome = totalMonthlyIncome(profile);
   const totalExpenses = totalMonthlyExpenses(profile);
@@ -115,6 +119,25 @@ export function GastosScreen({
       setEditingAccount(null);
     } catch (err) {
       setAccountError(err instanceof Error ? err.message : "No se ha podido renombrar la cuenta");
+    }
+  }
+
+  function handleEditExpense(item: ExpenseItem) {
+    setEditingExpense(item);
+    setOpenForm("expense");
+  }
+
+  function closeExpenseForm() {
+    setOpenForm(null);
+    setEditingExpense(null);
+  }
+
+  function toggleAddExpenseForm() {
+    if (openForm === "expense") {
+      closeExpenseForm();
+    } else {
+      setEditingExpense(null);
+      setOpenForm("expense");
     }
   }
 
@@ -229,12 +252,7 @@ export function GastosScreen({
             >
               + Añadir cuenta
             </Button>
-            <Button
-              tone="expense"
-              variant="tint"
-              size="sm"
-              onClick={() => setOpenForm(openForm === "expense" ? null : "expense")}
-            >
+            <Button tone="expense" variant="tint" size="sm" onClick={toggleAddExpenseForm}>
               + Añadir gasto
             </Button>
             <Button
@@ -262,8 +280,9 @@ export function GastosScreen({
             <AddExpenseForm
               accountNames={accountNames}
               properties={properties}
-              onSubmit={onAddExpense}
-              onCancel={() => setOpenForm(null)}
+              initial={editingExpense ?? undefined}
+              onSubmit={editingExpense ? (expense) => onUpdateExpense(editingExpense.id, expense) : onAddExpense}
+              onCancel={closeExpenseForm}
             />
           </Card>
         )}
@@ -439,6 +458,14 @@ export function GastosScreen({
                           <span className="tabular-nums font-medium text-[var(--text-primary)]">
                             −{formatEUR(item.monthlyAmount)}
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => handleEditExpense(item)}
+                            aria-label={`Editar gasto ${item.label}`}
+                            className={`rounded-lg px-1.5 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] hover:text-[var(--text-primary)] ${focusRing}`}
+                          >
+                            Editar
+                          </button>
                           <DeleteButton
                             onClick={() => handleRemoveExpense(item.label, item.id)}
                             label={`Eliminar gasto ${item.label}`}

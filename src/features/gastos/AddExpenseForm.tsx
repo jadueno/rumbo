@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ExpenseGroup, NewExpenseItem, Property } from "../../domain/types";
+import type { ExpenseGroup, ExpenseItem, NewExpenseItem, Property } from "../../domain/types";
 import { Field, inputClass } from "../../components/Field";
 import { Button } from "../../components/Button";
 
@@ -11,20 +11,23 @@ const categories: { value: ExpenseGroup; label: string }[] = [
 export function AddExpenseForm({
   accountNames,
   properties,
+  initial,
   onSubmit,
   onCancel,
 }: {
   accountNames: string[];
   properties: Property[];
+  /** Presente al editar un gasto existente: precarga el formulario con sus datos. */
+  initial?: ExpenseItem;
   onSubmit: (expense: NewExpenseItem) => Promise<void>;
   onCancel: () => void;
 }) {
-  const [account, setAccount] = useState(accountNames[0] ?? "");
-  const [category, setCategory] = useState<ExpenseGroup>("Fijos");
-  const [property, setProperty] = useState("");
-  const [propertyId, setPropertyId] = useState("");
-  const [label, setLabel] = useState("");
-  const [monthlyAmount, setMonthlyAmount] = useState<number | "">("");
+  const [account, setAccount] = useState(initial?.account ?? accountNames[0] ?? "");
+  const [category, setCategory] = useState<ExpenseGroup>(initial?.group ?? "Fijos");
+  const [property, setProperty] = useState(initial?.property ?? "");
+  const [propertyId, setPropertyId] = useState(initial?.propertyId ?? "");
+  const [label, setLabel] = useState(initial?.label ?? "");
+  const [monthlyAmount, setMonthlyAmount] = useState<number | "">(initial?.monthlyAmount ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,7 +130,7 @@ export function AddExpenseForm({
       )}
       <div className="flex gap-2">
         <Button type="submit" tone="ink" disabled={submitting || accountNames.length === 0}>
-          {submitting ? "Guardando…" : "Guardar gasto"}
+          {submitting ? "Guardando…" : initial ? "Guardar cambios" : "Guardar gasto"}
         </Button>
         <Button variant="ghost" onClick={onCancel}>
           Cancelar

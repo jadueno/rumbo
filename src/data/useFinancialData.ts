@@ -124,6 +124,10 @@ export function useFinancialData(enabled = true) {
       await expenseClient.create(toApiExpense(entity));
       await reload();
     },
+    updateExpense: async (id: string, entity: NewExpenseItem) => {
+      await expenseClient.update(id, toApiExpense(entity));
+      await reload();
+    },
     removeExpense: async (id: string) => {
       await expenseClient.remove(id);
       await reload();

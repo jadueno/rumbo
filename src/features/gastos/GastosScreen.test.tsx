@@ -29,6 +29,7 @@ function renderScreen(profile: FinancialProfile) {
     onUpdateIncome: vi.fn().mockResolvedValue(undefined),
     onRemoveIncome: vi.fn().mockResolvedValue(undefined),
     onAddExpense: vi.fn().mockResolvedValue(undefined),
+    onUpdateExpense: vi.fn().mockResolvedValue(undefined),
     onRemoveExpense: vi.fn().mockResolvedValue(undefined),
     onAddTransfer: vi.fn().mockResolvedValue(undefined),
     onRemoveTransfer: vi.fn().mockResolvedValue(undefined),
@@ -97,6 +98,29 @@ describe("GastosScreen", () => {
     await user.click(screen.getByRole("button", { name: "Eliminar" }));
 
     expect(handlers.onRemoveIncome).toHaveBeenCalledWith("i1");
+  });
+
+  it("permite editar un gasto existente desde su tarjeta", async () => {
+    const user = userEvent.setup();
+    const profile = baseProfile({
+      expenses: [{ id: "e1", group: "Fijos", account: "ING", label: "Alquiler", monthlyAmount: 500 }],
+    });
+    const handlers = renderScreen(profile);
+
+    await user.click(screen.getByRole("button", { name: "Editar gasto Alquiler" }));
+    const label = screen.getByLabelText("Concepto");
+    expect(label).toHaveValue("Alquiler");
+    await user.clear(label);
+    await user.type(label, "Alquiler piso");
+    const amount = screen.getByLabelText("Importe mensual (€)");
+    await user.clear(amount);
+    await user.type(amount, "550");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(handlers.onUpdateExpense).toHaveBeenCalledWith(
+      "e1",
+      expect.objectContaining({ account: "ING", label: "Alquiler piso", monthlyAmount: 550 }),
+    );
   });
 
   it("permite renombrar una cuenta desde su tarjeta", async () => {

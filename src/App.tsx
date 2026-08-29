@@ -158,6 +158,7 @@ export default function App() {
                   onUpdateIncome={data.updateIncome}
                   onRemoveIncome={data.removeIncome}
                   onAddExpense={data.addExpense}
+                  onUpdateExpense={data.updateExpense}
                   onRemoveExpense={data.removeExpense}
                   onAddTransfer={data.addTransfer}
                   onRemoveTransfer={data.removeTransfer}
