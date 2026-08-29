@@ -25,7 +25,7 @@ import {
 import { Card } from "../../components/Card";
 import { Button } from "../../components/Button";
 import { IconBadge } from "../../components/IconBadge";
-import { SavingsIcon, IncomeIcon, HomeIcon } from "../../components/icons";
+import { SavingsIcon, IncomeIcon, HomeIcon, ChevronRightIcon } from "../../components/icons";
 import { focusRing } from "../../components/Field";
 import { ProgressBar } from "../../components/ProgressBar";
 import { useConfirm } from "../../components/ConfirmProvider";
@@ -285,8 +285,12 @@ export function AhorroScreen({
                       setViewingPropertyId(property.id);
                     }
                   }}
-                  className={`cursor-pointer rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition-colors hover:border-[var(--text-muted)] ${focusRing}`}
+                  className={`group relative cursor-pointer rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 pr-9 shadow-card transition-all duration-150 hover:border-[var(--text-muted)] hover:shadow-card-hover ${focusRing}`}
                 >
+                  <ChevronRightIcon
+                    aria-hidden="true"
+                    className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-[var(--text-muted)] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-[var(--text-primary)]"
+                  />
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-[var(--text-primary)]">{property.name}</h3>
                     <div className="flex items-center gap-3">
@@ -327,6 +331,9 @@ export function AhorroScreen({
                       gastos)
                     </p>
                   )}
+                  <p className="mt-3 text-xs font-semibold text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">
+                    Ver ingresos y gastos vinculados
+                  </p>
                   {editingPropertyId === property.id && (
                     <div onClick={(e) => e.stopPropagation()}>
                       <PropertyForm
