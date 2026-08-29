@@ -23,6 +23,34 @@ import { settleLayout, type LayoutEdge, type LayoutNode } from "./layout";
 
 const nodeTypes = { account: AccountNode, income: IncomeNode };
 
+// Recuerda dónde arrastró el usuario cada bola, solo en este navegador (no viaja entre
+// dispositivos ni se guarda en el servidor). Si se borran los datos del sitio o se abre
+// desde otro navegador, se pierde y vuelve al layout calculado — es una comodidad local,
+// no una copia de seguridad.
+const POSITIONS_STORAGE_KEY = "rumbo-flujo-positions";
+
+function loadSavedPositions(): Record<string, { x: number; y: number }> {
+  try {
+    const raw = localStorage.getItem(POSITIONS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePositions(positions: Record<string, { x: number; y: number }>) {
+  try {
+    localStorage.setItem(POSITIONS_STORAGE_KEY, JSON.stringify(positions));
+  } catch {
+    // Mejor esfuerzo: si el navegador bloquea localStorage (privado, cuota...), no pasa nada.
+  }
+}
+
+// Un ingreso no puede quedar a la derecha de su cuenta: como cada cuenta tiene un único
+// punto de entrada (izquierda) y de salida (derecha) fijos, si el ingreso cruza al otro
+// lado la flecha tiene que rodear la bola entera y se enrosca sobre sí misma.
+const INCOME_CLAMP_MARGIN = 190;
+
 export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; accounts: Account[] }) {
   const [selected, setSelected] = useState<string | null>(null);
   const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
@@ -89,16 +117,18 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
     });
 
     const settled = settleLayout(layoutNodes, layoutEdges);
+    const saved = loadSavedPositions();
 
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     const colorByAccount = buildAccountColors(accounts.map((a) => a.name));
 
     accounts.forEach((account) => {
-      const pos = settled.get(`account-${account.name}`)!;
+      const id = `account-${account.name}`;
+      const pos = saved[id] ?? settled.get(id)!;
       const balance = accountBalances.find((b) => b.account === account.name);
       nodes.push({
-        id: `account-${account.name}`,
+        id,
         type: "account",
         position: { x: pos.x, y: pos.y },
         data: {
@@ -114,9 +144,10 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
     });
 
     profile.incomes.forEach((income) => {
-      const pos = settled.get(`income-${income.id}`)!;
+      const id = `income-${income.id}`;
+      const pos = saved[id] ?? settled.get(id)!;
       nodes.push({
-        id: `income-${income.id}`,
+        id,
         type: "income",
         position: { x: pos.x, y: pos.y },
         data: { label: income.label, amount: income.monthlyAmount } satisfies IncomeNodeData,
@@ -171,9 +202,30 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
     setNodes((nds) => nds.map((n) => (n.type === "account" ? { ...n, selected: n.id === `account-${selected}` } : n)));
   }, [selected]);
 
+  const incomeAccountId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const income of profile.incomes) map.set(`income-${income.id}`, `account-${income.account}`);
+    return map;
+  }, [profile.incomes]);
+
   const onNodesChange = useCallback(
-    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    [],
+    (changes: NodeChange[]) =>
+      setNodes((nds) => {
+        let applied = applyNodeChanges(changes, nds);
+        applied = applied.map((n) => {
+          if (n.type !== "income") return n;
+          const accountId = incomeAccountId.get(n.id);
+          const account = accountId ? applied.find((a) => a.id === accountId) : undefined;
+          if (!account) return n;
+          const maxX = account.position.x - INCOME_CLAMP_MARGIN;
+          return n.position.x > maxX ? { ...n, position: { ...n.position, x: maxX } } : n;
+        });
+        if (changes.some((c) => c.type === "position" && c.dragging === false)) {
+          savePositions(Object.fromEntries(applied.map((n) => [n.id, n.position])));
+        }
+        return applied;
+      }),
+    [incomeAccountId],
   );
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
