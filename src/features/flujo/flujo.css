@@ -1,0 +1,36 @@
+/* Repinta los controles por defecto de @xyflow/react (pensados para fondo claro) con los
+   tokens de Rumbo — la librería no expone estas piezas como props, solo como CSS. */
+.rumbo-flow .react-flow__controls {
+  box-shadow: none;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.rumbo-flow .react-flow__controls-button {
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+  fill: var(--text-secondary);
+  stroke: var(--text-secondary);
+}
+
+.rumbo-flow .react-flow__controls-button:hover {
+  background: var(--surface-2);
+}
+
+.rumbo-flow .react-flow__attribution {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.rumbo-flow .react-flow__edge-path {
+  stroke-width: 2px;
+}
+
+.rumbo-flow .react-flow__edge-text {
+  fill: var(--text-secondary);
+}
+
+.rumbo-flow .react-flow__edge-textbg {
+  fill: var(--surface-1);
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType, type SVGProps } from "react";
+import { lazy, Suspense, useEffect, useState, type ComponentType, type SVGProps } from "react";
 import { useFinancialData } from "./data/useFinancialData";
 import { getAuthConfig, login, logout } from "./data/api";
 import { getStoredToken, onUnauthorized } from "./data/auth";
@@ -6,16 +6,20 @@ import { ResumenScreen } from "./features/resumen/ResumenScreen";
 import { GastosScreen } from "./features/gastos/GastosScreen";
 import { DeudasScreen } from "./features/deudas/DeudasScreen";
 import { AhorroScreen } from "./features/ahorro/AhorroScreen";
-import { HomeIcon, ExpenseIcon, DebtIcon, SavingsIcon, LogoutIcon } from "./components/icons";
+import { HomeIcon, ExpenseIcon, DebtIcon, SavingsIcon, FlowIcon, LogoutIcon } from "./components/icons";
 import { LoadingState } from "./components/LoadingState";
 import { BrandMark } from "./components/BrandMark";
 import { LoginScreen } from "./features/auth/LoginScreen";
+
+// @xyflow/react (diagrama de nodos) solo hace falta al abrir "Flujo": se carga aparte
+// para no engordar la carga inicial del resto de la app.
+const FlujoScreen = lazy(() => import("./features/flujo/FlujoScreen").then((m) => ({ default: m.FlujoScreen })));
 
 // "Perfil" no es una sección de navegación: hay demasiadas ya, y no es algo que se
 // consulte a diario — vive como un botón/modal dentro de "Resumen" (ver ResumenScreen).
 // "Recomendaciones" tampoco: la lista completa de consejos vive en la tarjeta "Qué
 // deberías mirar" de "Resumen", no en una sección propia.
-type Section = "resumen" | "gastos" | "deudas" | "ahorro";
+type Section = "resumen" | "gastos" | "deudas" | "ahorro" | "flujo";
 
 const sections: {
   id: Section;
@@ -27,6 +31,7 @@ const sections: {
   { id: "gastos", label: "Ingresos y Gastos", shortLabel: "Gastos", icon: ExpenseIcon },
   { id: "deudas", label: "Deudas", shortLabel: "Deudas", icon: DebtIcon },
   { id: "ahorro", label: "Ahorro", shortLabel: "Ahorro", icon: SavingsIcon },
+  { id: "flujo", label: "Flujo de cuentas", shortLabel: "Flujo", icon: FlowIcon },
 ];
 
 export default function App() {
@@ -173,6 +178,11 @@ export default function App() {
                   onUpdateProperty={data.updateProperty}
                   onRemoveProperty={data.removeProperty}
                 />
+              )}
+              {section === "flujo" && (
+                <Suspense fallback={<LoadingState />}>
+                  <FlujoScreen profile={data.profile} accounts={data.accounts} />
+                </Suspense>
               )}
             </>
           )}

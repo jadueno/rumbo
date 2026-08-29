@@ -99,6 +99,18 @@ export function LogoutIcon(props: IconProps) {
   );
 }
 
+export function FlowIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="5" cy="6" r="2.5" />
+      <circle cx="5" cy="18" r="2.5" />
+      <circle cx="18" cy="12" r="2.5" />
+      <path d="M7.3 7.1 15.7 11" />
+      <path d="M7.3 16.9 15.7 13" />
+    </svg>
+  );
+}
+
 export function InfoIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
