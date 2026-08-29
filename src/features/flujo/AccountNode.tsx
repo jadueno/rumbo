@@ -11,10 +11,32 @@ export interface AccountNodeData {
   [key: string]: unknown;
 }
 
-const RING_COLORS = ["var(--series-violet)", "var(--accent-yellow)", "var(--series-savings)", "var(--series-income)"];
+const RING_COLORS = [
+  "var(--series-violet)",
+  "var(--accent-yellow)",
+  "var(--series-savings)",
+  "var(--series-income)",
+  "var(--series-expense)",
+];
 
-export function accountRingColor(index: number): string {
-  return RING_COLORS[index % RING_COLORS.length];
+/** "Bankinter - Nómina" -> "Bankinter", "MyInvestor (Pensión)" -> "MyInvestor", "BBVA" -> "BBVA". */
+function accountEntity(name: string): string {
+  return name.split(/ - | \(/)[0].trim();
+}
+
+/** Un color por entidad bancaria (no por cuenta): las cuentas de un mismo banco comparten
+ * anillo, así se ve de un vistazo qué bolas son del mismo sitio. */
+export function buildAccountColors(accountNames: string[]): Map<string, string> {
+  const colorByEntity = new Map<string, string>();
+  const result = new Map<string, string>();
+  for (const name of accountNames) {
+    const entity = accountEntity(name);
+    if (!colorByEntity.has(entity)) {
+      colorByEntity.set(entity, RING_COLORS[colorByEntity.size % RING_COLORS.length]);
+    }
+    result.set(name, colorByEntity.get(entity)!);
+  }
+  return result;
 }
 
 export function AccountNode({ data }: { data: AccountNodeData }) {

@@ -5,7 +5,7 @@ import "./flujo.css";
 import type { Account, FinancialProfile } from "../../domain/types";
 import { balanceByAccount, formatEUR } from "../../domain/calculations";
 import { Card } from "../../components/Card";
-import { AccountNode, accountRingColor, type AccountNodeData } from "./AccountNode";
+import { AccountNode, buildAccountColors, type AccountNodeData } from "./AccountNode";
 import { IncomeNode, type IncomeNodeData } from "./IncomeNode";
 import { settleLayout, type LayoutEdge, type LayoutNode } from "./layout";
 
@@ -68,8 +68,9 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
 
     const nodes: Node[] = [];
     const edges: Edge[] = [];
+    const colorByAccount = buildAccountColors(accounts.map((a) => a.name));
 
-    accounts.forEach((account, i) => {
+    accounts.forEach((account) => {
       const pos = settled.get(`account-${account.name}`)!;
       const balance = accountBalances.find((b) => b.account === account.name);
       nodes.push({
@@ -83,7 +84,7 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
           transfersIn: balance?.transfersIn ?? 0,
           transfersOut: balance?.transfersOut ?? 0,
           selected: selected === account.name,
-          ringColor: accountRingColor(i),
+          ringColor: colorByAccount.get(account.name)!,
         } satisfies AccountNodeData & { ringColor: string },
         draggable: true,
       });
@@ -104,11 +105,7 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
         sourceHandle: "out",
         target: `account-${income.account}`,
         targetHandle: "in",
-        label: formatEUR(income.monthlyAmount),
         style: { stroke: "var(--series-income)" },
-        labelStyle: { fill: "var(--series-income)", fontWeight: 600, fontSize: 11 },
-        labelBgStyle: { fill: "var(--surface-1)" },
-        labelBgPadding: [4, 2],
       });
     });
 
