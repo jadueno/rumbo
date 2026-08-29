@@ -134,19 +134,12 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
     });
 
     profile.transfers.forEach((t) => {
-      const from = settled.get(`account-${t.fromAccount}`)!;
-      const to = settled.get(`account-${t.toAccount}`)!;
-      const dx = to.x - from.x;
-      const dy = to.y - from.y;
-      const horizontal = Math.abs(dx) >= Math.abs(dy);
-      const sourceHandle = horizontal ? (dx >= 0 ? "out" : "out-left") : dy >= 0 ? "out-bottom" : "out-top";
-      const targetHandle = horizontal ? (dx >= 0 ? "in" : "in-right") : dy >= 0 ? "in-top" : "in-bottom";
       edges.push({
         id: `e-transfer-${t.id}`,
         source: `account-${t.fromAccount}`,
-        sourceHandle,
+        sourceHandle: "out",
         target: `account-${t.toAccount}`,
-        targetHandle,
+        targetHandle: "in",
         label: formatEUR(t.monthlyAmount),
         style: { stroke: "var(--series-violet)", strokeWidth: 2.5 },
         labelStyle: { fill: "var(--series-violet)", fontWeight: 800, fontSize: 15 },

@@ -56,17 +56,12 @@ export function AccountNode({ data, selected }: { data: AccountNodeData; selecte
         transform: selected ? "scale(1.04)" : "scale(1)",
       }}
     >
-      {/* Cada lado lleva un handle de entrada y uno de salida: al ser un layout libre en
-          2D (no una columna fija), qué lado usa cada arista de traspaso se decide en
-          FlujoScreen según la posición relativa real entre las dos cuentas. */}
+      {/* Un único punto de entrada y uno de salida por cuenta (no uno por arista): todas
+          las salidas parten del mismo sitio y se abren en abanico hacia su destino, y las
+          entradas llegan todas por el lado contrario — así se lee de un vistazo qué es
+          entrada y qué es salida en vez de tener flechas saliendo de cualquier borde. */}
       <Handle type="target" position={Position.Left} id="in" style={handleStyle} />
-      <Handle type="source" position={Position.Left} id="out-left" style={handleStyle} />
       <Handle type="source" position={Position.Right} id="out" style={handleStyle} />
-      <Handle type="target" position={Position.Right} id="in-right" style={handleStyle} />
-      <Handle type="target" position={Position.Top} id="in-top" style={handleStyle} />
-      <Handle type="source" position={Position.Top} id="out-top" style={handleStyle} />
-      <Handle type="source" position={Position.Bottom} id="out-bottom" style={handleStyle} />
-      <Handle type="target" position={Position.Bottom} id="in-bottom" style={handleStyle} />
       <span className="px-3 text-[0.8rem] leading-tight font-bold text-[var(--text-primary)]">{data.name}</span>
       <span
         className="text-[0.95rem] leading-none font-extrabold tabular-nums"
