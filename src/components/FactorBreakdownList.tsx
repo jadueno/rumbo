@@ -2,6 +2,8 @@ import type { FinancialHealthFactor } from "../domain/calculations";
 import { ProgressBar } from "./ProgressBar";
 
 const FACTOR_DESCRIPTIONS: Record<FinancialHealthFactor["key"], string> = {
+  cashflow:
+    "Si gastas más de lo que ingresas cada mes. Sin déficit = 100 puntos; a partir de gastar un 20% más de tus ingresos = 0 puntos.",
   savingsRate:
     "Qué parte de tus ingresos mensuales va a ahorro o inversión de forma deliberada (vinculada a un fondo de emergencia o inversión), no solo lo que sobra sin más. 20% o más de tus ingresos = 100 puntos; 0% = 0 puntos.",
   emergencyFund:
@@ -10,6 +12,8 @@ const FACTOR_DESCRIPTIONS: Record<FinancialHealthFactor["key"], string> = {
     "Qué parte de tus ingresos mensuales se va en cuotas de deuda (préstamos, financiación). Sin deuda = 100 puntos; a partir de un 35% de tus ingresos en cuotas = 0 puntos.",
   idleSurplus:
     "Dinero que cada mes no va ni a gastos ni a un ahorro/inversión con destino, sobre tus ingresos (se permiten hasta 200€ de colchón por cuenta sin que cuenten). Si no se queda nada ocioso = 100 puntos; a partir de un 20% de tus ingresos sin destino = 0 puntos.",
+  netWorth:
+    "Tu patrimonio actual (ahorro e inversión con seguimiento + propiedades, menos deuda pendiente) sobre el recomendado para tu edad e ingresos (edad × ingreso anual ÷ 10). 80% o más de esa referencia = 100 puntos; 0% o menos = 0 puntos.",
 };
 
 function toneColorForScore(score: number): string {

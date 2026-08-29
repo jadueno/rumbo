@@ -851,10 +851,12 @@ describe("rentalProfitByProperty", () => {
 describe("scoreFromMetrics", () => {
   it("da 100 cuando todas las métricas están en o por encima de su objetivo", () => {
     const result = scoreFromMetrics({
+      cashflowDeficitRatio: 0,
       savingsRate: 0.2,
       debtLoad: 0,
       emergencyFundProgress: 1,
       idleRatio: 0,
+      netWorthProgress: 0.8,
     });
     expect(result.score).toBe(100);
     expect(result.factors.every((f) => f.score === 100)).toBe(true);
@@ -862,30 +864,60 @@ describe("scoreFromMetrics", () => {
 
   it("da 0 cuando todas las métricas están en el peor caso posible", () => {
     const result = scoreFromMetrics({
+      cashflowDeficitRatio: 0.2,
       savingsRate: 0,
       debtLoad: 0.35,
       emergencyFundProgress: 0,
       idleRatio: 0.2,
+      netWorthProgress: 0,
     });
     expect(result.score).toBe(0);
   });
 
   it("no baja de 0 ni sube de 100 aunque las métricas superen los umbrales de referencia", () => {
-    const best = scoreFromMetrics({ savingsRate: 1, debtLoad: 0, emergencyFundProgress: 1, idleRatio: 0 });
-    const worst = scoreFromMetrics({ savingsRate: 0, debtLoad: 1, emergencyFundProgress: 0, idleRatio: 1 });
+    const best = scoreFromMetrics({
+      cashflowDeficitRatio: 0,
+      savingsRate: 1,
+      debtLoad: 0,
+      emergencyFundProgress: 1,
+      idleRatio: 0,
+      netWorthProgress: 2,
+    });
+    const worst = scoreFromMetrics({
+      cashflowDeficitRatio: 1,
+      savingsRate: 0,
+      debtLoad: 1,
+      emergencyFundProgress: 0,
+      idleRatio: 1,
+      netWorthProgress: -1,
+    });
     expect(best.score).toBe(100);
     expect(worst.score).toBe(0);
     expect(worst.factors.every((f) => f.score === 0)).toBe(true);
   });
 
   it("los pesos de los factores suman 1", () => {
-    const result = scoreFromMetrics({ savingsRate: 0.1, debtLoad: 0.1, emergencyFundProgress: 0.5, idleRatio: 0.1 });
+    const result = scoreFromMetrics({
+      cashflowDeficitRatio: 0.05,
+      savingsRate: 0.1,
+      debtLoad: 0.1,
+      emergencyFundProgress: 0.5,
+      idleRatio: 0.1,
+      netWorthProgress: 0.4,
+    });
     const totalWeight = result.factors.reduce((acc, f) => acc + f.weight, 0);
     expect(totalWeight).toBeCloseTo(1);
   });
 
   it("el score final es la media ponderada de los factores", () => {
-    const result = scoreFromMetrics({ savingsRate: 0.1, debtLoad: 0.35, emergencyFundProgress: 0, idleRatio: 0 });
+    const result = scoreFromMetrics({
+      cashflowDeficitRatio: 0.1,
+      savingsRate: 0.1,
+      debtLoad: 0.35,
+      emergencyFundProgress: 0,
+      idleRatio: 0,
+      netWorthProgress: 0.3,
+    });
     const expected = result.factors.reduce((acc, f) => acc + f.score * f.weight, 0);
     expect(result.score).toBe(Math.round(expected));
   });
@@ -934,13 +966,24 @@ describe("financialHealthScore", () => {
       { account: "Nomina", income: 2000, expenses: 1000, transfersIn: 0, transfersOut: 400, balance: 600 },
     ];
     const efTarget = emergencyFundTarget(profile); // 3000
-    const result = financialHealthScore(profile, accountBalances, trackers, efTarget * 0.5);
+    const result = financialHealthScore(profile, accountBalances, trackers, efTarget * 0.5, []);
 
+    expect(result.factors.find((f) => f.key === "cashflow")?.score).toBe(100); // sin déficit: ingresos > gastos + deuda
     expect(result.factors.find((f) => f.key === "savingsRate")?.score).toBe(100); // 400/2000 = 20% = objetivo
     expect(result.factors.find((f) => f.key === "emergencyFund")?.score).toBe(50);
     expect(result.factors.find((f) => f.key === "debtLoad")?.score).toBeGreaterThan(0);
+    expect(result.factors.find((f) => f.key === "netWorth")?.score).toBeGreaterThanOrEqual(0);
     expect(result.score).toBeGreaterThan(0);
     expect(result.score).toBeLessThanOrEqual(100);
+  });
+
+  it("penaliza con cashflow negativo aunque el resto de métricas vaya bien", () => {
+    const profile = makeProfile({
+      incomes: [{ id: "1", account: "Nomina", label: "Salario", monthlyAmount: 2000 }],
+      expenses: [{ id: "1", group: "Fijos", account: "Nomina", label: "Gastos", monthlyAmount: 2500 }],
+    });
+    const result = financialHealthScore(profile, [], [], 0, []);
+    expect(result.factors.find((f) => f.key === "cashflow")?.score).toBe(0); // -500/2000 = 25% de déficit, por encima del límite del 20%
   });
 });
 

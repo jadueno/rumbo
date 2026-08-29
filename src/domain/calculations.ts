@@ -61,6 +61,17 @@ export function netMonthlyCashflow(profile: FinancialProfile): number {
   return totalMonthlyIncome(profile) - totalMonthlyExpenses(profile);
 }
 
+/** Cuánto se gasta de más sobre los ingresos mensuales, como ratio: 0 si el cashflow es
+ * cero o positivo (no hay déficit que penalizar). */
+export function cashflowDeficitRatio(profile: FinancialProfile): number {
+  const net = netMonthlyCashflow(profile);
+  if (net >= 0) return 0;
+  const income = totalMonthlyIncome(profile);
+  // Sin ingresos y gastando: máxima severidad, sin necesidad de más precisión en el ratio.
+  if (income === 0) return 1;
+  return -net / income;
+}
+
 /** Cuentas con balance negativo, tal cual aparecen en `accountBalances` (sin compensar entre ellas). */
 export function accountsInDeficit(accountBalances: AccountBalance[]): AccountBalance[] {
   return accountBalances.filter((a) => a.balance < 0);
@@ -257,6 +268,21 @@ export function currentNetWorth(
   return trackedAssets + totalPropertyValue(properties) - totalEstimatedRemainingDebt(profile, today);
 }
 
+/** Patrimonio actual sobre el recomendado para tu edad e ingresos (ver `recommendedNetWorth`).
+ * 1 = justo en el objetivo; puede superar 1 o ser negativo. Sin objetivo (edad o ingresos a
+ * 0) se trata como "en el objetivo" — no hay con qué comparar, no penaliza por falta de datos. */
+export function netWorthProgress(
+  profile: FinancialProfile,
+  accountBalances: AccountBalance[],
+  trackers: SavingsTracker[],
+  properties: Property[],
+  today: Date = new Date(),
+): number {
+  const target = recommendedNetWorth(profile);
+  if (target <= 0) return 1;
+  return currentNetWorth(profile, accountBalances, trackers, properties, today) / target;
+}
+
 export interface PropertyRentalProfit {
   propertyId: string;
   income: number;
@@ -429,9 +455,17 @@ export interface FinancialHealthMetrics {
   debtLoad: number;
   emergencyFundProgress: number;
   idleRatio: number;
+  cashflowDeficitRatio: number;
+  netWorthProgress: number;
 }
 
-export type FinancialHealthFactorKey = "savingsRate" | "emergencyFund" | "debtLoad" | "idleSurplus";
+export type FinancialHealthFactorKey =
+  | "savingsRate"
+  | "emergencyFund"
+  | "debtLoad"
+  | "idleSurplus"
+  | "cashflow"
+  | "netWorth";
 
 export interface FinancialHealthFactor {
   key: FinancialHealthFactorKey;
@@ -456,43 +490,60 @@ export interface FinancialHealthScore {
 const SAVINGS_RATE_TARGET = 0.2;
 const DEBT_LOAD_LIMIT = 0.35;
 const IDLE_RATIO_LIMIT = 0.2;
+/** A partir de qué ratio de gasto de más sobre los ingresos el factor de cashflow toca 0. */
+const CASHFLOW_DEFICIT_LIMIT = 0.2;
+/** Progreso de patrimonio que ya se considera "a la altura" de tu edad e ingresos — el mismo
+ * umbral que usa buildRecommendations para dejar de avisar (no hace falta llegar al 100%
+ * exacto de la fórmula de Stanley, que ya es de por sí una referencia aproximada). */
+const NET_WORTH_TARGET_RATIO = 0.8;
 
 function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 /**
- * Combina métricas ya calculadas (tasa de ahorro, carga de deuda, progreso
- * del fondo de emergencia, ratio de dinero ocioso) en un único score 0-100
- * con desglose explicable por factor, en vez de una caja negra. Separado de
- * financialHealthScore para poder recalcularlo también sobre métricas
- * hipotéticas (el simulador "qué pasaría si").
+ * Combina métricas ya calculadas (cashflow, tasa de ahorro, fondo de emergencia, carga de
+ * deuda, dinero ocioso, patrimonio para la edad) en un único score 0-100 con desglose
+ * explicable por factor, en vez de una caja negra. Separado de financialHealthScore para
+ * poder recalcularlo también sobre métricas hipotéticas (el simulador "qué pasaría si").
  */
 export function scoreFromMetrics(metrics: FinancialHealthMetrics): FinancialHealthScore {
   const factors: FinancialHealthFactor[] = [
     {
+      key: "cashflow",
+      label: "Ingresos vs. gastos",
+      score: clampScore(100 - (metrics.cashflowDeficitRatio / CASHFLOW_DEFICIT_LIMIT) * 100),
+      weight: 0.2,
+    },
+    {
       key: "savingsRate",
       label: "Tasa de ahorro/inversión",
       score: clampScore((metrics.savingsRate / SAVINGS_RATE_TARGET) * 100),
-      weight: 0.3,
+      weight: 0.2,
     },
     {
       key: "emergencyFund",
       label: "Fondo de emergencia",
       score: clampScore(metrics.emergencyFundProgress * 100),
-      weight: 0.3,
+      weight: 0.25,
     },
     {
       key: "debtLoad",
       label: "Carga de deuda",
       score: clampScore(100 - (metrics.debtLoad / DEBT_LOAD_LIMIT) * 100),
-      weight: 0.25,
+      weight: 0.2,
     },
     {
       key: "idleSurplus",
       label: "Dinero con destino (no ocioso)",
       score: clampScore(100 - (metrics.idleRatio / IDLE_RATIO_LIMIT) * 100),
-      weight: 0.15,
+      weight: 0.1,
+    },
+    {
+      key: "netWorth",
+      label: "Patrimonio para tu edad",
+      score: clampScore((metrics.netWorthProgress / NET_WORTH_TARGET_RATIO) * 100),
+      weight: 0.05,
     },
   ];
 
@@ -513,6 +564,7 @@ export function financialHealthScore(
   accountBalances: AccountBalance[],
   trackers: SavingsTracker[],
   emergencyFundBalance: number,
+  properties: Property[],
 ): FinancialHealthScore {
   const income = totalMonthlyIncome(profile);
   const debtLoad = income === 0 ? 0 : totalMonthlyDebtPayments(profile) / income;
@@ -521,6 +573,8 @@ export function financialHealthScore(
     debtLoad,
     emergencyFundProgress: emergencyFundProgress(profile, emergencyFundBalance),
     idleRatio: idleRatio(profile, accountBalances, trackers),
+    cashflowDeficitRatio: cashflowDeficitRatio(profile),
+    netWorthProgress: netWorthProgress(profile, accountBalances, trackers, properties),
   });
 }
 

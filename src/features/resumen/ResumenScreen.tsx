@@ -42,7 +42,7 @@ export function ResumenScreen({
   // negativo por separado, sin compensarla con el superávit de otra cuenta.
   const deficitAccounts = accountsInDeficit(accountBalances);
   const efBalance = currentEmergencyFundBalance(trackers, accountBalances);
-  const healthScore = financialHealthScore(profile, accountBalances, trackers, efBalance);
+  const healthScore = financialHealthScore(profile, accountBalances, trackers, efBalance, properties);
   const recommendations = buildRecommendations(profile, efBalance, accountBalances, trackers, properties).sort(
     (a, b) => severityRank(a.severity) - severityRank(b.severity),
   );
