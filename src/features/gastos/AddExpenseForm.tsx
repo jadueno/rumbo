@@ -12,6 +12,7 @@ export function AddExpenseForm({
   accountNames,
   properties,
   initial,
+  defaultAccount,
   onSubmit,
   onCancel,
 }: {
@@ -19,10 +20,12 @@ export function AddExpenseForm({
   properties: Property[];
   /** Presente al editar un gasto existente: precarga el formulario con sus datos. */
   initial?: ExpenseItem;
+  /** Al añadir uno nuevo desde una cuenta concreta: precarga solo la cuenta. */
+  defaultAccount?: string;
   onSubmit: (expense: NewExpenseItem) => Promise<void>;
   onCancel: () => void;
 }) {
-  const [account, setAccount] = useState(initial?.account ?? accountNames[0] ?? "");
+  const [account, setAccount] = useState(initial?.account ?? defaultAccount ?? accountNames[0] ?? "");
   const [category, setCategory] = useState<ExpenseGroup>(initial?.group ?? "Fijos");
   const [property, setProperty] = useState(initial?.property ?? "");
   const [propertyId, setPropertyId] = useState(initial?.propertyId ?? "");
@@ -33,7 +36,7 @@ export function AddExpenseForm({
 
   return (
     <form
-      className="mt-4 flex flex-col gap-3 border-t border-[var(--gridline)] pt-4"
+      className="flex flex-col gap-3"
       onSubmit={async (e) => {
         e.preventDefault();
         setSubmitting(true);

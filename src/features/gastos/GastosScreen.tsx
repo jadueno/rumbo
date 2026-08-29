@@ -22,6 +22,7 @@ import { IconBadge } from "../../components/IconBadge";
 import { IncomeIcon } from "../../components/icons";
 import { focusRing } from "../../components/Field";
 import { useConfirm } from "../../components/ConfirmProvider";
+import { Modal } from "../../components/Modal";
 import { AddIncomeForm } from "./AddIncomeForm";
 import { AddExpenseForm } from "./AddExpenseForm";
 import { AddTransferForm } from "./AddTransferForm";
@@ -68,10 +69,13 @@ export function GastosScreen({
   onRemoveTransfer,
 }: Props) {
   const confirm = useConfirm();
-  const [openForm, setOpenForm] = useState<"income" | "expense" | "transfer" | "account" | null>(null);
+  const [openForm, setOpenForm] = useState<"income" | "account" | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
   const [editingAccount, setEditingAccount] = useState<{ id: string; name: string } | null>(null);
-  const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
+  // null = cerrado. `expense` presente = editar ese gasto; ausente = alta nueva
+  // (opcionalmente con `account` precargado, al abrirlo desde la tarjeta de una cuenta).
+  const [expenseModal, setExpenseModal] = useState<{ expense?: ExpenseItem; account?: string } | null>(null);
+  const [transferModal, setTransferModal] = useState<{ defaultFromAccount?: string } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const totalIncome = totalMonthlyIncome(profile);
   const totalExpenses = totalMonthlyExpenses(profile);
@@ -119,25 +123,6 @@ export function GastosScreen({
       setEditingAccount(null);
     } catch (err) {
       setAccountError(err instanceof Error ? err.message : "No se ha podido renombrar la cuenta");
-    }
-  }
-
-  function handleEditExpense(item: ExpenseItem) {
-    setEditingExpense(item);
-    setOpenForm("expense");
-  }
-
-  function closeExpenseForm() {
-    setOpenForm(null);
-    setEditingExpense(null);
-  }
-
-  function toggleAddExpenseForm() {
-    if (openForm === "expense") {
-      closeExpenseForm();
-    } else {
-      setEditingExpense(null);
-      setOpenForm("expense");
     }
   }
 
@@ -252,15 +237,10 @@ export function GastosScreen({
             >
               + Añadir cuenta
             </Button>
-            <Button tone="expense" variant="tint" size="sm" onClick={toggleAddExpenseForm}>
+            <Button tone="expense" variant="tint" size="sm" onClick={() => setExpenseModal({})}>
               + Añadir gasto
             </Button>
-            <Button
-              tone="violet"
-              variant="tint"
-              size="sm"
-              onClick={() => setOpenForm(openForm === "transfer" ? null : "transfer")}
-            >
+            <Button tone="violet" variant="tint" size="sm" onClick={() => setTransferModal({})}>
               + Añadir transferencia
             </Button>
             <Button tone="neutral" variant="tint" size="sm" onClick={() => setImportOpen(true)}>
@@ -273,22 +253,6 @@ export function GastosScreen({
         {openForm === "account" && (
           <Card className="mb-4">
             <AddAccountForm onSubmit={onAddAccount} onCancel={() => setOpenForm(null)} />
-          </Card>
-        )}
-        {openForm === "expense" && (
-          <Card className="mb-4">
-            <AddExpenseForm
-              accountNames={accountNames}
-              properties={properties}
-              initial={editingExpense ?? undefined}
-              onSubmit={editingExpense ? (expense) => onUpdateExpense(editingExpense.id, expense) : onAddExpense}
-              onCancel={closeExpenseForm}
-            />
-          </Card>
-        )}
-        {openForm === "transfer" && (
-          <Card className="mb-4">
-            <AddTransferForm accountNames={accountNames} onSubmit={onAddTransfer} onCancel={() => setOpenForm(null)} />
           </Card>
         )}
         {accountError && (
@@ -349,6 +313,7 @@ export function GastosScreen({
                           <button
                             type="button"
                             onClick={() => setEditingAccount({ id: accountEntity.id, name: accountEntity.name })}
+                            aria-label={`Editar cuenta ${account}`}
                             className={`rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] hover:text-[var(--text-primary)] ${focusRing}`}
                           >
                             Editar
@@ -356,6 +321,7 @@ export function GastosScreen({
                           <button
                             type="button"
                             onClick={() => handleRemoveAccount(accountEntity)}
+                            aria-label={`Eliminar cuenta ${account}`}
                             className={`rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] hover:text-[var(--status-critical)] ${focusRing}`}
                           >
                             Eliminar cuenta
@@ -368,15 +334,37 @@ export function GastosScreen({
                     {formatEUR(balance)}
                   </p>
                 </div>
-                <div className="mt-1 flex gap-4 text-sm text-[var(--text-secondary)]">
-                  <span>
-                    Ingresos:{" "}
-                    <strong className="font-bold text-[var(--text-primary)]">{formatEUR(income)}</strong>
-                  </span>
-                  <span>
-                    Gastos:{" "}
-                    <strong className="font-bold text-[var(--text-primary)]">{formatEUR(expenses)}</strong>
-                  </span>
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex gap-4 text-sm text-[var(--text-secondary)]">
+                    <span>
+                      Ingresos:{" "}
+                      <strong className="font-bold text-[var(--text-primary)]">{formatEUR(income)}</strong>
+                    </span>
+                    <span>
+                      Gastos:{" "}
+                      <strong className="font-bold text-[var(--text-primary)]">{formatEUR(expenses)}</strong>
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      tone="expense"
+                      variant="tint"
+                      size="sm"
+                      aria-label={`Añadir gasto a ${account}`}
+                      onClick={() => setExpenseModal({ account })}
+                    >
+                      + Gasto
+                    </Button>
+                    <Button
+                      tone="violet"
+                      variant="tint"
+                      size="sm"
+                      aria-label={`Añadir transferencia desde ${account}`}
+                      onClick={() => setTransferModal({ defaultFromAccount: account })}
+                    >
+                      + Transferencia
+                    </Button>
+                  </div>
                 </div>
 
                 {incomeItems.length === 0 &&
@@ -460,7 +448,7 @@ export function GastosScreen({
                           </span>
                           <button
                             type="button"
-                            onClick={() => handleEditExpense(item)}
+                            onClick={() => setExpenseModal({ expense: item })}
                             aria-label={`Editar gasto ${item.label}`}
                             className={`rounded-lg px-1.5 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] hover:text-[var(--text-primary)] ${focusRing}`}
                           >
@@ -480,6 +468,34 @@ export function GastosScreen({
           })}
         </div>
       </div>
+
+      {expenseModal && (
+        <Modal title={expenseModal.expense ? "Editar gasto" : "Añadir gasto"} onClose={() => setExpenseModal(null)}>
+          <AddExpenseForm
+            accountNames={accountNames}
+            properties={properties}
+            initial={expenseModal.expense}
+            defaultAccount={expenseModal.account}
+            onSubmit={
+              expenseModal.expense
+                ? (expense) => onUpdateExpense(expenseModal.expense!.id, expense)
+                : onAddExpense
+            }
+            onCancel={() => setExpenseModal(null)}
+          />
+        </Modal>
+      )}
+
+      {transferModal && (
+        <Modal title="Añadir transferencia" onClose={() => setTransferModal(null)}>
+          <AddTransferForm
+            accountNames={accountNames}
+            defaultFromAccount={transferModal.defaultFromAccount}
+            onSubmit={onAddTransfer}
+            onCancel={() => setTransferModal(null)}
+          />
+        </Modal>
+      )}
 
       {importOpen && (
         <Suspense fallback={null}>

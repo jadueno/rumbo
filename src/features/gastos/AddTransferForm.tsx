@@ -5,15 +5,20 @@ import { Button } from "../../components/Button";
 
 export function AddTransferForm({
   accountNames,
+  defaultFromAccount,
   onSubmit,
   onCancel,
 }: {
   accountNames: string[];
+  /** Al abrir desde una cuenta concreta: precarga "Desde" con esa cuenta. */
+  defaultFromAccount?: string;
   onSubmit: (transfer: NewTransfer) => Promise<void>;
   onCancel: () => void;
 }) {
-  const [fromAccount, setFromAccount] = useState(accountNames[0] ?? "");
-  const [toAccount, setToAccount] = useState(accountNames[1] ?? accountNames[0] ?? "");
+  const [fromAccount, setFromAccount] = useState(defaultFromAccount ?? accountNames[0] ?? "");
+  const [toAccount, setToAccount] = useState(
+    accountNames.find((a) => a !== (defaultFromAccount ?? accountNames[0])) ?? accountNames[0] ?? "",
+  );
   const [monthlyAmount, setMonthlyAmount] = useState<number | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +26,7 @@ export function AddTransferForm({
 
   return (
     <form
-      className="mt-4 flex flex-col gap-3 border-t border-[var(--gridline)] pt-4"
+      className="flex flex-col gap-3"
       onSubmit={async (e) => {
         e.preventDefault();
         if (sameAccount) {

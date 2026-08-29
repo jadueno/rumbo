@@ -17,7 +17,10 @@ function baseProfile(overrides: Partial<FinancialProfile> = {}): FinancialProfil
   };
 }
 
-const accounts: Account[] = [{ id: "1", name: "ING" }];
+const accounts: Account[] = [
+  { id: "1", name: "ING" },
+  { id: "2", name: "Ibercaja" },
+];
 const properties: Property[] = [];
 
 function renderScreen(profile: FinancialProfile) {
@@ -127,12 +130,57 @@ describe("GastosScreen", () => {
     const user = userEvent.setup();
     const handlers = renderScreen(baseProfile());
 
-    await user.click(screen.getByRole("button", { name: "Editar" }));
+    await user.click(screen.getByRole("button", { name: "Editar cuenta ING" }));
     const input = screen.getByLabelText("Renombrar cuenta ING");
     await user.clear(input);
     await user.type(input, "ING - Ahorro");
     await user.click(screen.getByRole("button", { name: "Guardar" }));
 
     expect(handlers.onUpdateAccount).toHaveBeenCalledWith("1", { name: "ING - Ahorro" });
+  });
+
+  it("abre el alta de gasto en un modal", async () => {
+    const user = userEvent.setup();
+    renderScreen(baseProfile());
+
+    await user.click(screen.getByRole("button", { name: "+ Añadir gasto" }));
+
+    expect(screen.getByRole("dialog", { name: "Añadir gasto" })).toBeInTheDocument();
+  });
+
+  it("editar un gasto abre un modal titulado 'Editar gasto'", async () => {
+    const user = userEvent.setup();
+    const profile = baseProfile({
+      expenses: [{ id: "e1", group: "Fijos", account: "ING", label: "Alquiler", monthlyAmount: 500 }],
+    });
+    renderScreen(profile);
+
+    await user.click(screen.getByRole("button", { name: "Editar gasto Alquiler" }));
+
+    expect(screen.getByRole("dialog", { name: "Editar gasto" })).toBeInTheDocument();
+  });
+
+  it("el botón + Gasto de una cuenta abre el modal con esa cuenta ya elegida", async () => {
+    const user = userEvent.setup();
+    renderScreen(baseProfile());
+
+    await user.click(screen.getByRole("button", { name: "Añadir gasto a Ibercaja" }));
+
+    expect(screen.getByLabelText("Cuenta")).toHaveValue("Ibercaja");
+  });
+
+  it("el botón + Transferencia de una cuenta abre el modal con esa cuenta como origen", async () => {
+    const user = userEvent.setup();
+    const handlers = renderScreen(baseProfile());
+
+    await user.click(screen.getByRole("button", { name: "Añadir transferencia desde Ibercaja" }));
+    expect(screen.getByLabelText("Desde")).toHaveValue("Ibercaja");
+
+    await user.type(screen.getByLabelText("Importe mensual (€)"), "50");
+    await user.click(screen.getByRole("button", { name: "Guardar transferencia" }));
+
+    expect(handlers.onAddTransfer).toHaveBeenCalledWith(
+      expect.objectContaining({ fromAccount: "Ibercaja", toAccount: "ING" }),
+    );
   });
 });
