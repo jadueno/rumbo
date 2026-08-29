@@ -1,5 +1,14 @@
 import { useState } from "react";
-import type { Account, FinancialProfile, NewProperty, NewSavingsTracker, Property, SavingsTracker } from "../../domain/types";
+import type {
+  Account,
+  ExpenseItem,
+  FinancialProfile,
+  IncomeSource,
+  NewProperty,
+  NewSavingsTracker,
+  Property,
+  SavingsTracker,
+} from "../../domain/types";
 import {
   balanceByAccount,
   currentEmergencyFundBalance,
@@ -20,6 +29,7 @@ import { SavingsIcon, IncomeIcon, HomeIcon } from "../../components/icons";
 import { focusRing } from "../../components/Field";
 import { ProgressBar } from "../../components/ProgressBar";
 import { useConfirm } from "../../components/ConfirmProvider";
+import { Modal } from "../../components/Modal";
 import { SetupEmergencyFundForm } from "./SetupEmergencyFundForm";
 import { AddInvestmentForm } from "./AddInvestmentForm";
 import { EditTrackerForm } from "./EditTrackerForm";
@@ -55,6 +65,7 @@ export function AhorroScreen({
   const [editingTrackerId, setEditingTrackerId] = useState<string | null>(null);
   const [showAddProperty, setShowAddProperty] = useState(false);
   const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
+  const [viewingPropertyId, setViewingPropertyId] = useState<string | null>(null);
 
   const accountNames = accounts.map((a) => a.name);
   const accountBalances = balanceByAccount(profile, accountNames);
@@ -263,20 +274,38 @@ export function AhorroScreen({
             {properties.map((property) => {
               const profit = rentalProfits.find((p) => p.propertyId === property.id);
               return (
-                <div key={property.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                <div
+                  key={property.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setViewingPropertyId(property.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setViewingPropertyId(property.id);
+                    }
+                  }}
+                  className={`cursor-pointer rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition-colors hover:border-[var(--text-muted)] ${focusRing}`}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-[var(--text-primary)]">{property.name}</h3>
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => setEditingPropertyId((v) => (v === property.id ? null : property.id))}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingPropertyId((v) => (v === property.id ? null : property.id));
+                        }}
                         className={`rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] hover:text-[var(--text-primary)] ${focusRing}`}
                       >
                         {editingPropertyId === property.id ? "Cerrar" : "Editar"}
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleRemoveProperty(property.name, property.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveProperty(property.name, property.id);
+                        }}
                         aria-label={`Eliminar propiedad ${property.name}`}
                         className={`rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--gridline)] hover:text-[var(--status-critical)] ${focusRing}`}
                       >
@@ -299,11 +328,13 @@ export function AhorroScreen({
                     </p>
                   )}
                   {editingPropertyId === property.id && (
-                    <PropertyForm
-                      initial={property}
-                      onSubmit={(entity) => onUpdateProperty(property.id, entity)}
-                      onCancel={() => setEditingPropertyId(null)}
-                    />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <PropertyForm
+                        initial={property}
+                        onSubmit={(entity) => onUpdateProperty(property.id, entity)}
+                        onCancel={() => setEditingPropertyId(null)}
+                      />
+                    </div>
                   )}
                 </div>
               );
@@ -337,6 +368,94 @@ export function AhorroScreen({
           de su objetivo.
         </p>
       </Card>
+
+      {viewingPropertyId && (
+        <PropertyBreakdownModal
+          property={properties.find((p) => p.id === viewingPropertyId)!}
+          incomes={profile.incomes.filter((i) => i.propertyId === viewingPropertyId)}
+          expenses={profile.expenses.filter((e) => e.propertyId === viewingPropertyId)}
+          onClose={() => setViewingPropertyId(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function PropertyBreakdownModal({
+  property,
+  incomes,
+  expenses,
+  onClose,
+}: {
+  property: Property;
+  incomes: IncomeSource[];
+  expenses: ExpenseItem[];
+  onClose: () => void;
+}) {
+  const income = incomes.reduce((sum, i) => sum + i.monthlyAmount, 0);
+  const expensesTotal = expenses.reduce((sum, e) => sum + e.monthlyAmount, 0);
+  const net = income - expensesTotal;
+
+  return (
+    <Modal title={property.name} description="Ingresos y gastos vinculados a esta propiedad." onClose={onClose}>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap gap-4">
+          <div>
+            <p className="text-xs text-[var(--text-muted)]">Valor estimado</p>
+            <p className="text-lg font-bold tabular-nums text-[var(--text-primary)]">
+              {formatEUR(property.estimatedValue)}
+            </p>
+          </div>
+          {(incomes.length > 0 || expenses.length > 0) && (
+            <div>
+              <p className="text-xs text-[var(--text-muted)]">Alquiler neto</p>
+              <p
+                className="text-lg font-bold tabular-nums"
+                style={{ color: net >= 0 ? "var(--series-savings)" : "var(--status-critical)" }}
+              >
+                {net >= 0 ? "+" : ""}
+                {formatEUR(net)}/mes
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <h3 className="text-xs font-semibold text-[var(--text-muted)]">Ingresos vinculados</h3>
+          {incomes.length === 0 ? (
+            <p className="mt-2 text-sm text-[var(--text-muted)]">Ninguno.</p>
+          ) : (
+            <ul className="mt-2 flex flex-col gap-1 text-sm">
+              {incomes.map((i) => (
+                <li key={i.id} className="flex items-center justify-between gap-2">
+                  <span className="text-[var(--text-secondary)]">{i.label}</span>
+                  <span className="tabular-nums font-medium" style={{ color: "var(--series-income)" }}>
+                    +{formatEUR(i.monthlyAmount)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div>
+          <h3 className="text-xs font-semibold text-[var(--text-muted)]">Gastos vinculados</h3>
+          {expenses.length === 0 ? (
+            <p className="mt-2 text-sm text-[var(--text-muted)]">Ninguno.</p>
+          ) : (
+            <ul className="mt-2 flex flex-col gap-1 text-sm">
+              {expenses.map((e) => (
+                <li key={e.id} className="flex items-center justify-between gap-2">
+                  <span className="text-[var(--text-primary)]">{e.label}</span>
+                  <span className="tabular-nums font-medium text-[var(--text-primary)]">
+                    −{formatEUR(e.monthlyAmount)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </Modal>
   );
 }

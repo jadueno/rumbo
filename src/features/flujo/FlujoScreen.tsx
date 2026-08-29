@@ -25,7 +25,7 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
     // para que el layout de fuerzas converja rápido), ingresos pegados a su cuenta.
     accounts.forEach((account, i) => {
       const angle = (i / Math.max(accounts.length, 1)) * Math.PI * 2;
-      const radius = 260;
+      const radius = 380;
       layoutNodes.push({
         id: `account-${account.name}`,
         x: Math.cos(angle) * radius,
@@ -50,7 +50,7 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
       layoutEdges.push({
         source: `income-${income.id}`,
         target: `account-${income.account}`,
-        rest: 190,
+        rest: 240,
         strength: 0.025,
       });
     });
@@ -59,7 +59,7 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
       layoutEdges.push({
         source: `account-${t.fromAccount}`,
         target: `account-${t.toAccount}`,
-        rest: 300,
+        rest: 420,
         strength: 0.015,
       });
     });

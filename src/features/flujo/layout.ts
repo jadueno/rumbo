@@ -20,10 +20,10 @@ export interface LayoutEdge {
   strength: number;
 }
 
-const REPULSION = 30000;
-const CENTER_K = 0.004;
+const REPULSION = 70000;
+const CENTER_K = 0.0025;
 const DAMPING = 0.82;
-const INCOME_MARGIN = 150;
+const INCOME_MARGIN = 190;
 
 export function settleLayout(nodes: LayoutNode[], edges: LayoutEdge[], iterations = 260) {
   const byId = new Map(nodes.map((n) => [n.id, n]));
