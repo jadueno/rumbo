@@ -262,12 +262,15 @@ export function GastosScreen({
         )}
 
         <div className="flex flex-col gap-4">
-          {accountBalances.map(({ account, income, expenses, balance }) => {
+          {accountBalances.map(({ account, income, expenses, transfersIn: transfersInAmount, balance }) => {
             const items = profile.expenses.filter((e) => e.account === account);
             const incomeItems = profile.incomes.filter((i) => i.account === account);
             const transfersOut = profile.transfers.filter((t) => t.fromAccount === account);
             const transfersIn = profile.transfers.filter((t) => t.toAccount === account);
             const accountEntity = accounts.find((a) => a.name === account);
+            // "Ingresos" de la tarjeta suma también lo recibido por transferencia: es todo
+            // el dinero que entra en esta cuenta, no solo sus fuentes de ingreso propias.
+            const totalIncomeIntoAccount = income + transfersInAmount;
 
             const balanceColor = balance >= 0 ? "var(--series-savings)" : "var(--series-expense)";
 
@@ -338,7 +341,9 @@ export function GastosScreen({
                   <div className="flex gap-4 text-sm text-[var(--text-secondary)]">
                     <span>
                       Ingresos:{" "}
-                      <strong className="font-bold text-[var(--text-primary)]">{formatEUR(income)}</strong>
+                      <strong className="font-bold text-[var(--text-primary)]">
+                        {formatEUR(totalIncomeIntoAccount)}
+                      </strong>
                     </span>
                     <span>
                       Gastos:{" "}

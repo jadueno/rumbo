@@ -183,4 +183,17 @@ describe("GastosScreen", () => {
       expect.objectContaining({ fromAccount: "Ibercaja", toAccount: "ING" }),
     );
   });
+
+  it("el 'Ingresos' de la tarjeta de una cuenta suma también los traspasos que recibe", () => {
+    const profile = baseProfile({
+      incomes: [{ id: "i1", account: "Ibercaja", label: "Nómina", monthlyAmount: 2000 }],
+      expenses: [{ id: "e1", group: "Fijos", account: "Ibercaja", label: "Alquiler", monthlyAmount: 100 }],
+      transfers: [{ id: "t1", fromAccount: "ING", toAccount: "Ibercaja", monthlyAmount: 300 }],
+    });
+    renderScreen(profile);
+
+    // Balance queda en 2200 € (2300 de ingresos - 100 de gasto), distinto del importe de
+    // "Ingresos", así que este valor solo puede venir de sumar ingreso + traspaso entrante.
+    expect(screen.getByText("2300 €")).toBeInTheDocument();
+  });
 });
