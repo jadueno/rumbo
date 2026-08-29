@@ -7,6 +7,7 @@ import { registerAuth, type LoginConfig } from "./auth.js";
 import { isAllowedOrigin } from "./corsOrigin.js";
 import { registerCrudRoutes } from "./crudRoutes.js";
 import { registerProfileRoutes } from "./profileRoutes.js";
+import { registerFlujoPositionsRoutes } from "./flujoPositionsRoutes.js";
 import { createAccountRepository } from "../db/repositories/accountRepository.js";
 import { createProfileRepository } from "../db/repositories/profileRepository.js";
 import { createIncomeRepository } from "../db/repositories/incomeRepository.js";
@@ -15,6 +16,7 @@ import { createDebtRepository } from "../db/repositories/debtRepository.js";
 import { createTransferRepository } from "../db/repositories/transferRepository.js";
 import { createSavingsTrackerRepository } from "../db/repositories/savingsTrackerRepository.js";
 import { createPropertyRepository } from "../db/repositories/propertyRepository.js";
+import { createFlujoPositionsRepository } from "../db/repositories/flujoPositionsRepository.js";
 import { createAccountUseCases } from "../../application/accounts.js";
 import { createProfileUseCases } from "../../application/profile.js";
 import { createIncomeUseCases } from "../../application/incomes.js";
@@ -23,6 +25,7 @@ import { createDebtUseCases } from "../../application/debts.js";
 import { createTransferUseCases } from "../../application/transfers.js";
 import { createSavingsTrackerUseCases } from "../../application/savingsTrackers.js";
 import { createPropertyUseCases } from "../../application/properties.js";
+import { createFlujoPositionsUseCases } from "../../application/flujoPositions.js";
 
 export async function buildServer(pool: Pool, options: { logger?: boolean; loginConfig?: LoginConfig } = {}) {
   const app = Fastify({ logger: options.logger ?? true });
@@ -46,6 +49,7 @@ export async function buildServer(pool: Pool, options: { logger?: boolean; login
   const transferRepository = createTransferRepository(pool);
   const savingsTrackerRepository = createSavingsTrackerRepository(pool);
   const propertyRepository = createPropertyRepository(pool);
+  const flujoPositionsRepository = createFlujoPositionsRepository(pool);
 
   registerCrudRoutes(app, "/accounts", createAccountUseCases(accountRepository));
   registerProfileRoutes(app, createProfileUseCases(profileRepository));
@@ -55,6 +59,7 @@ export async function buildServer(pool: Pool, options: { logger?: boolean; login
   registerCrudRoutes(app, "/transfers", createTransferUseCases(transferRepository));
   registerCrudRoutes(app, "/savings-trackers", createSavingsTrackerUseCases(savingsTrackerRepository));
   registerCrudRoutes(app, "/properties", createPropertyUseCases(propertyRepository));
+  registerFlujoPositionsRoutes(app, createFlujoPositionsUseCases(flujoPositionsRepository));
 
   return app;
 }

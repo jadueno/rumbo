@@ -183,7 +183,12 @@ export default function App() {
               )}
               {section === "flujo" && (
                 <Suspense fallback={<LoadingState />}>
-                  <FlujoScreen profile={data.profile} accounts={data.accounts} />
+                  <FlujoScreen
+                    profile={data.profile}
+                    accounts={data.accounts}
+                    flujoPositions={data.flujoPositions}
+                    onUpdateFlujoPositions={data.updateFlujoPositions}
+                  />
                 </Suspense>
               )}
             </>

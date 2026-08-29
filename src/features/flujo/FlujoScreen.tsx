@@ -14,7 +14,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import "./flujo.css";
-import type { Account, FinancialProfile } from "../../domain/types";
+import type { Account, FinancialProfile, FlujoPositions } from "../../domain/types";
 import { balanceByAccount, formatEUR } from "../../domain/calculations";
 import { Card } from "../../components/Card";
 import { AccountNode, buildAccountColors, type AccountNodeData } from "./AccountNode";
@@ -23,35 +23,22 @@ import { settleLayout, type LayoutEdge, type LayoutNode } from "./layout";
 
 const nodeTypes = { account: AccountNode, income: IncomeNode };
 
-// Recuerda dónde arrastró el usuario cada bola, solo en este navegador (no viaja entre
-// dispositivos ni se guarda en el servidor). Si se borran los datos del sitio o se abre
-// desde otro navegador, se pierde y vuelve al layout calculado — es una comodidad local,
-// no una copia de seguridad.
-const POSITIONS_STORAGE_KEY = "rumbo-flujo-positions";
-
-function loadSavedPositions(): Record<string, { x: number; y: number }> {
-  try {
-    const raw = localStorage.getItem(POSITIONS_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function savePositions(positions: Record<string, { x: number; y: number }>) {
-  try {
-    localStorage.setItem(POSITIONS_STORAGE_KEY, JSON.stringify(positions));
-  } catch {
-    // Mejor esfuerzo: si el navegador bloquea localStorage (privado, cuota...), no pasa nada.
-  }
-}
-
 // Un ingreso no puede quedar a la derecha de su cuenta: como cada cuenta tiene un único
 // punto de entrada (izquierda) y de salida (derecha) fijos, si el ingreso cruza al otro
 // lado la flecha tiene que rodear la bola entera y se enrosca sobre sí misma.
 const INCOME_CLAMP_MARGIN = 190;
 
-export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; accounts: Account[] }) {
+export function FlujoScreen({
+  profile,
+  accounts,
+  flujoPositions,
+  onUpdateFlujoPositions,
+}: {
+  profile: FinancialProfile;
+  accounts: Account[];
+  flujoPositions: FlujoPositions;
+  onUpdateFlujoPositions: (positions: FlujoPositions) => Promise<void>;
+}) {
   const [selected, setSelected] = useState<string | null>(null);
   const accountBalances = balanceByAccount(profile, accounts.map((a) => a.name));
   const totalIncome = profile.incomes.reduce((sum, i) => sum + i.monthlyAmount, 0);
@@ -117,7 +104,7 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
     });
 
     const settled = settleLayout(layoutNodes, layoutEdges);
-    const saved = loadSavedPositions();
+    const saved = flujoPositions;
 
     const nodes: Node[] = [];
     const edges: Edge[] = [];
@@ -221,11 +208,11 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
           return n.position.x > maxX ? { ...n, position: { ...n.position, x: maxX } } : n;
         });
         if (changes.some((c) => c.type === "position" && c.dragging === false)) {
-          savePositions(Object.fromEntries(applied.map((n) => [n.id, n.position])));
+          onUpdateFlujoPositions(Object.fromEntries(applied.map((n) => [n.id, n.position])));
         }
         return applied;
       }),
-    [incomeAccountId],
+    [incomeAccountId, onUpdateFlujoPositions],
   );
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),

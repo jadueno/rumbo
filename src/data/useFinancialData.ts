@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type {
   Account,
   FinancialProfile,
+  FlujoPositions,
   NewAccount,
   NewDebt,
   NewExpenseItem,
@@ -36,6 +37,7 @@ const debtClient = createCrudClient<ApiDebt, ReturnType<typeof toApiDebt>>("/deb
 const transferClient = createCrudClient<ApiTransfer, NewTransfer>("/transfers");
 const trackerClient = createCrudClient<SavingsTracker, NewSavingsTracker>("/savings-trackers");
 const propertyClient = createCrudClient<Property, NewProperty>("/properties");
+const flujoPositionsClient = createSingletonClient<FlujoPositions>("/flujo-positions");
 
 export function useFinancialData(enabled = true) {
   const [profile, setProfile] = useState<FinancialProfile | null>(null);
@@ -43,6 +45,7 @@ export function useFinancialData(enabled = true) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [trackers, setTrackers] = useState<SavingsTracker[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [flujoPositions, setFlujoPositions] = useState<FlujoPositions>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,20 +53,31 @@ export function useFinancialData(enabled = true) {
     setLoading(true);
     setError(null);
     try {
-      const [apiProfile, accountList, apiIncomes, apiExpenses, apiDebts, transfers, trackerList, propertyList] =
-        await Promise.all([
-          profileClient.get(),
-          accountClient.list(),
-          incomeClient.list(),
-          expenseClient.list(),
-          debtClient.list(),
-          transferClient.list(),
-          trackerClient.list(),
-          propertyClient.list(),
-        ]);
+      const [
+        apiProfile,
+        accountList,
+        apiIncomes,
+        apiExpenses,
+        apiDebts,
+        transfers,
+        trackerList,
+        propertyList,
+        positions,
+      ] = await Promise.all([
+        profileClient.get(),
+        accountClient.list(),
+        incomeClient.list(),
+        expenseClient.list(),
+        debtClient.list(),
+        transferClient.list(),
+        trackerClient.list(),
+        propertyClient.list(),
+        flujoPositionsClient.get(),
+      ]);
       setAccounts(accountList);
       setTrackers(trackerList);
       setProperties(propertyList);
+      setFlujoPositions(positions);
       setRawProfile(apiProfile);
       setProfile({
         age: calculateAge(apiProfile.birthDate),
@@ -106,8 +120,16 @@ export function useFinancialData(enabled = true) {
     accounts,
     trackers,
     properties,
+    flujoPositions,
     loading,
     error,
+    // A propósito, sin `reload()` detrás: guardar dónde ha arrastrado el usuario una bola
+    // no debería volver a pedir todo el resto de datos financieros (ver FlujoScreen, que
+    // ya evita recalcular su layout salvo que esos otros datos cambien de verdad).
+    updateFlujoPositions: async (positions: FlujoPositions) => {
+      const updated = await flujoPositionsClient.update(positions);
+      setFlujoPositions(updated);
+    },
     updateProfile: async (entity: Profile) => {
       await profileClient.update(entity);
       await reload();

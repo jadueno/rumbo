@@ -91,6 +91,10 @@ export interface Profile {
   emergencyFundTargetMonths: number;
 }
 
+/** Singleton: posiciones que el usuario ha arrastrado en el diagrama de "Flujo de
+ * cuentas", indexadas por id de nodo (p. ej. "account-BBVA", "income-<uuid>"). */
+export type FlujoPositions = Record<string, { x: number; y: number }>;
+
 export interface FinancialProfile {
   age: number;
   incomes: IncomeSource[];

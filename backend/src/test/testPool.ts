@@ -12,6 +12,9 @@ const TABLES = [
   "savings_trackers",
   "properties",
   "accounts",
+  // A diferencia de "profile", "flujo_positions" no tiene fila sembrada por una migración
+  // de seed: empieza vacía de verdad, así que sí tiene sentido vaciarla entre tests.
+  "flujo_positions",
 ];
 
 /**

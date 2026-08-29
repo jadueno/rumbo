@@ -57,6 +57,34 @@ describe("/profile", () => {
   });
 });
 
+describe("/flujo-positions", () => {
+  it("devuelve un objeto vacío antes de guardar nada", async () => {
+    const res = await app.inject({ method: "GET", url: "/flujo-positions" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({});
+  });
+
+  it("guarda y relee las posiciones", async () => {
+    const payload = { "account-BBVA": { x: 12.5, y: -30 }, "income-abc": { x: -220, y: 40 } };
+    const update = await app.inject({ method: "PUT", url: "/flujo-positions", payload });
+    expect(update.statusCode).toBe(200);
+    expect(update.json()).toEqual(payload);
+
+    const get = await app.inject({ method: "GET", url: "/flujo-positions" });
+    expect(get.json()).toEqual(payload);
+  });
+
+  it("responde 400 con una posición no numérica", async () => {
+    const res = await app.inject({
+      method: "PUT",
+      url: "/flujo-positions",
+      payload: { "account-BBVA": { x: "no", y: 0 } },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toContain("Posición inválida");
+  });
+});
+
 describe("/accounts", () => {
   it("crea, lista y borra una cuenta", async () => {
     const create = await app.inject({ method: "POST", url: "/accounts", payload: { name: "ING" } });
