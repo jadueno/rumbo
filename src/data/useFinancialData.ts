@@ -84,6 +84,22 @@ export function useFinancialData(enabled = true) {
     if (enabled) reload();
   }, [enabled, reload]);
 
+  // Sin esto, una pestaña que llevaba un rato abierta (o el móvil, al volver de segundo
+  // plano) se queda mostrando los datos de la última vez que cargó, aunque mientras tanto
+  // se haya cambiado algo desde otra pestaña, otro dispositivo o un script de importación.
+  useEffect(() => {
+    if (!enabled) return;
+    function refetchIfVisible() {
+      if (document.visibilityState === "visible") reload();
+    }
+    window.addEventListener("focus", reload);
+    document.addEventListener("visibilitychange", refetchIfVisible);
+    return () => {
+      window.removeEventListener("focus", reload);
+      document.removeEventListener("visibilitychange", refetchIfVisible);
+    };
+  }, [enabled, reload]);
+
   return {
     profile,
     rawProfile,
