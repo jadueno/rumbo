@@ -1,5 +1,17 @@
-import { useMemo, useState } from "react";
-import { Background, BackgroundVariant, Controls, ReactFlow, type Edge, type Node } from "@xyflow/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  applyEdgeChanges,
+  applyNodeChanges,
+  Background,
+  BackgroundVariant,
+  Controls,
+  MarkerType,
+  ReactFlow,
+  type Edge,
+  type EdgeChange,
+  type Node,
+  type NodeChange,
+} from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import "./flujo.css";
 import type { Account, FinancialProfile } from "../../domain/types";
@@ -17,7 +29,19 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
   const totalIncome = profile.incomes.reduce((sum, i) => sum + i.monthlyAmount, 0);
   const totalTransfers = profile.transfers.reduce((sum, t) => sum + t.monthlyAmount, 0);
 
-  const { nodes, edges } = useMemo(() => {
+  // Recalcular el layout de fuerzas es caro (260 iteraciones) y bloquea el hilo principal
+  // mientras corre. Si dependiera de `profile`/`accounts` por referencia, cada refresco en
+  // segundo plano (p. ej. al recuperar el foco de la pestaña) dispararía el recálculo
+  // aunque los datos no hayan cambiado — justo lo que hacía que el zoom/paneo se quedaran
+  // pillados a media interacción. Esta clave solo cambia si algo relevante cambia de verdad.
+  const layoutKey = JSON.stringify({
+    accounts: accounts.map((a) => a.name),
+    incomes: profile.incomes.map((i) => [i.id, i.account, i.label, i.monthlyAmount]),
+    expenses: profile.expenses.map((e) => [e.id, e.account, e.monthlyAmount]),
+    transfers: profile.transfers.map((t) => [t.id, t.fromAccount, t.toAccount, t.monthlyAmount]),
+  });
+
+  const { nodes: baseNodes, edges: baseEdges } = useMemo(() => {
     const layoutNodes: LayoutNode[] = [];
     const layoutEdges: LayoutEdge[] = [];
 
@@ -83,7 +107,6 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
           income: balance?.income ?? 0,
           transfersIn: balance?.transfersIn ?? 0,
           transfersOut: balance?.transfersOut ?? 0,
-          selected: selected === account.name,
           ringColor: colorByAccount.get(account.name)!,
         } satisfies AccountNodeData & { ringColor: string },
         draggable: true,
@@ -105,7 +128,8 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
         sourceHandle: "out",
         target: `account-${income.account}`,
         targetHandle: "in",
-        style: { stroke: "var(--series-income)" },
+        style: { stroke: "var(--series-income)", strokeWidth: 2.5 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: "var(--series-income)", width: 22, height: 22 },
       });
     });
 
@@ -124,16 +148,44 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
         target: `account-${t.toAccount}`,
         targetHandle,
         label: formatEUR(t.monthlyAmount),
-        style: { stroke: "var(--series-violet)" },
-        labelStyle: { fill: "var(--series-violet)", fontWeight: 600, fontSize: 11 },
+        style: { stroke: "var(--series-violet)", strokeWidth: 2.5 },
+        labelStyle: { fill: "var(--series-violet)", fontWeight: 800, fontSize: 15 },
         labelBgStyle: { fill: "var(--surface-1)" },
-        labelBgPadding: [4, 2],
+        labelBgPadding: [6, 3],
+        markerEnd: { type: MarkerType.ArrowClosed, color: "var(--series-violet)", width: 22, height: 22 },
       });
     });
 
     return { nodes, edges };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, accounts, selected]);
+  }, [layoutKey]);
+
+  // Estado propio para nodos/aristas (en vez de pasárselos tal cual a ReactFlow): sin
+  // onNodesChange, un arrastre se deshacía en el siguiente render que le llegara desde
+  // fuera (p. ej. el refresco al recuperar el foco), porque React Flow no tenía dónde
+  // guardar la posición nueva. Se reinicializan solo cuando cambia el layout de verdad.
+  const [nodes, setNodes] = useState<Node[]>(baseNodes);
+  const [edges, setEdges] = useState<Edge[]>(baseEdges);
+
+  useEffect(() => {
+    setNodes(baseNodes);
+    setEdges(baseEdges);
+  }, [baseNodes, baseEdges]);
+
+  // Aplicar la selección no debe volver a correr el layout de fuerzas: solo marca/desmarca
+  // el nodo ya calculado.
+  useEffect(() => {
+    setNodes((nds) => nds.map((n) => (n.type === "account" ? { ...n, selected: n.id === `account-${selected}` } : n)));
+  }, [selected]);
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    [],
+  );
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    [],
+  );
 
   const selectedBalance = selected ? accountBalances.find((b) => b.account === selected) : null;
 
@@ -150,19 +202,19 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Card className="!p-4">
           <p className="text-xs font-semibold text-[var(--text-muted)]">Ingresos al mes</p>
-          <p className="mt-1 text-lg font-bold tabular-nums" style={{ color: "var(--series-income)" }}>
+          <p className="mt-1 text-2xl font-bold tabular-nums" style={{ color: "var(--series-income)" }}>
             {formatEUR(totalIncome)}
           </p>
         </Card>
         <Card className="!p-4">
           <p className="text-xs font-semibold text-[var(--text-muted)]">Traspasos al mes</p>
-          <p className="mt-1 text-lg font-bold tabular-nums" style={{ color: "var(--series-violet)" }}>
+          <p className="mt-1 text-2xl font-bold tabular-nums" style={{ color: "var(--series-violet)" }}>
             {formatEUR(totalTransfers)}
           </p>
         </Card>
         <Card className="!p-4 col-span-2 sm:col-span-1">
           <p className="text-xs font-semibold text-[var(--text-muted)]">Cuentas</p>
-          <p className="mt-1 text-lg font-bold tabular-nums text-[var(--text-primary)]">{accounts.length}</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--text-primary)]">{accounts.length}</p>
         </Card>
       </div>
 
@@ -171,6 +223,8 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
           <ReactFlow
             nodes={nodes}
             edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
             nodeTypes={nodeTypes}
             onNodeClick={(_, node) => {
               if (node.type === "account") {
@@ -205,26 +259,26 @@ export function FlujoScreen({ profile, accounts }: { profile: FinancialProfile; 
           <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div>
               <dt className="text-xs text-[var(--text-muted)]">Ingresos</dt>
-              <dd className="text-sm font-semibold tabular-nums" style={{ color: "var(--series-income)" }}>
+              <dd className="text-lg font-bold tabular-nums" style={{ color: "var(--series-income)" }}>
                 {formatEUR(selectedBalance.income)}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-[var(--text-muted)]">Traspasos entrantes</dt>
-              <dd className="text-sm font-semibold tabular-nums" style={{ color: "var(--series-violet)" }}>
+              <dd className="text-lg font-bold tabular-nums" style={{ color: "var(--series-violet)" }}>
                 {formatEUR(selectedBalance.transfersIn)}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-[var(--text-muted)]">Traspasos salientes</dt>
-              <dd className="text-sm font-semibold tabular-nums" style={{ color: "var(--series-expense)" }}>
+              <dd className="text-lg font-bold tabular-nums" style={{ color: "var(--series-expense)" }}>
                 {formatEUR(selectedBalance.transfersOut)}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-[var(--text-muted)]">Balance</dt>
               <dd
-                className="text-sm font-semibold tabular-nums"
+                className="text-lg font-bold tabular-nums"
                 style={{ color: selectedBalance.balance < 0 ? "var(--status-critical)" : "var(--text-primary)" }}
               >
                 {formatEUR(selectedBalance.balance)}

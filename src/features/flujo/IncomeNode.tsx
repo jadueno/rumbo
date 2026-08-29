@@ -10,16 +10,20 @@ export interface IncomeNodeData {
 export function IncomeNode({ data }: { data: IncomeNodeData }) {
   return (
     <div
-      className="flex w-[168px] flex-col gap-0.5 rounded-2xl px-3.5 py-2.5"
+      className="flex w-[176px] flex-col gap-1 rounded-2xl px-4 py-3"
       style={{
-        background: "var(--surface-1)",
-        border: "1px solid var(--border)",
-        borderLeft: "3px solid var(--series-income)",
+        background: `linear-gradient(135deg, var(--series-income), color-mix(in srgb, var(--series-income) 75%, var(--series-savings)))`,
+        boxShadow: "0 6px 18px -6px color-mix(in srgb, var(--series-income) 60%, transparent)",
       }}
     >
       <Handle type="source" position={Position.Right} id="out" style={{ background: "transparent", border: "none", width: 1, height: 1 }} />
-      <span className="truncate text-[0.75rem] font-semibold text-[var(--text-primary)]">{data.label}</span>
-      <span className="text-[0.7rem] font-semibold tabular-nums" style={{ color: "var(--series-income)" }}>
+      <span
+        className="truncate text-[0.75rem] font-semibold"
+        style={{ color: "var(--on-series-income)" }}
+      >
+        {data.label}
+      </span>
+      <span className="text-base leading-none font-extrabold tabular-nums" style={{ color: "var(--on-series-income)" }}>
         +{formatEUR(data.amount)}
       </span>
     </div>

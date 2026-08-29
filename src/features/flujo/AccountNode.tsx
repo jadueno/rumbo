@@ -7,7 +7,6 @@ export interface AccountNodeData {
   income: number;
   transfersIn: number;
   transfersOut: number;
-  selected: boolean;
   [key: string]: unknown;
 }
 
@@ -17,6 +16,10 @@ const RING_COLORS = [
   "var(--series-savings)",
   "var(--series-income)",
   "var(--series-expense)",
+  // Mezclas de los mismos tokens para más entidades sin salirse de la paleta.
+  "color-mix(in srgb, var(--series-violet) 55%, var(--series-income) 45%)",
+  "color-mix(in srgb, var(--accent-yellow) 55%, var(--series-expense) 45%)",
+  "color-mix(in srgb, var(--series-savings) 55%, var(--series-violet) 45%)",
 ];
 
 /** "Bankinter - Nómina" -> "Bankinter", "MyInvestor (Pensión)" -> "MyInvestor", "BBVA" -> "BBVA". */
@@ -39,7 +42,7 @@ export function buildAccountColors(accountNames: string[]): Map<string, string> 
   return result;
 }
 
-export function AccountNode({ data }: { data: AccountNodeData }) {
+export function AccountNode({ data, selected }: { data: AccountNodeData; selected?: boolean }) {
   const negative = data.balance < 0;
   return (
     <div
@@ -47,10 +50,10 @@ export function AccountNode({ data }: { data: AccountNodeData }) {
       style={{
         background: `radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--surface-2) 55%, white 8%), var(--surface-2) 70%)`,
         border: `2px solid ${negative ? "var(--status-critical)" : (data.ringColor as string)}`,
-        boxShadow: data.selected
+        boxShadow: selected
           ? `0 0 0 4px color-mix(in srgb, ${data.ringColor as string} 35%, transparent), 0 8px 20px -6px rgba(0,0,0,0.5)`
           : "0 4px 14px -6px rgba(0,0,0,0.45)",
-        transform: data.selected ? "scale(1.04)" : "scale(1)",
+        transform: selected ? "scale(1.04)" : "scale(1)",
       }}
     >
       {/* Cada lado lleva un handle de entrada y uno de salida: al ser un layout libre en
@@ -66,7 +69,7 @@ export function AccountNode({ data }: { data: AccountNodeData }) {
       <Handle type="target" position={Position.Bottom} id="in-bottom" style={handleStyle} />
       <span className="px-3 text-[0.8rem] leading-tight font-bold text-[var(--text-primary)]">{data.name}</span>
       <span
-        className="text-[0.7rem] font-semibold tabular-nums"
+        className="text-[0.95rem] leading-none font-extrabold tabular-nums"
         style={{ color: negative ? "var(--status-critical)" : "var(--text-secondary)" }}
       >
         {formatEUR(data.balance)}
