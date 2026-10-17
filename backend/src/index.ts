@@ -18,7 +18,9 @@ const loginConfig =
 
 async function main() {
   const app = await buildServer(pool, { loginConfig });
-  await app.listen({ port, host: "0.0.0.0" });
+  // Solo localhost por defecto: en el VPS la única puerta de entrada es nginx. HOST=0.0.0.0 para probar
+  // desde el móvil en la misma red.
+  await app.listen({ port, host: process.env.HOST ?? "127.0.0.1" });
 }
 
 main().catch((error) => {
